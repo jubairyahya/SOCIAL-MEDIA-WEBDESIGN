@@ -160,7 +160,7 @@ app.post('/M00949001/contents', upload.single('image'), async (req, res) => {
     return res.status(401).json({ error: 'You must be logged in to post content' });
   }
 
-  db.collection('content')
+  db.collection('contents')
     .insertOne({ userId: req.session.userId, title, content, image })
     .then((result) => {
       res.json({ message: 'Content posted successfully', contentId: result.insertedId });
