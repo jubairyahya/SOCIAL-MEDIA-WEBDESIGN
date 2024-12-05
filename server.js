@@ -50,8 +50,7 @@ app.use(
 
 // Serve static files from the "Public" directory
 app.use(express.static("Public"));
-// Serve static files from "Public" under /M00949001
-//  app.use('/M00949001', express.static(path.join(__dirname, 'Public')));
+
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -88,6 +87,12 @@ app.post('/M00949001/users', async(req, res) => {
   }
 
 // check email is unique
+try {
+  // Check if email already exists in the database
+  const existingUser = await db.collection('users').findOne({ email });
+  if (existingUser) {
+    return res.status(400).json({ error: 'Email already taken!' });
+  }
 
   // Insert user into MongoDB 
   db.collection('users')
@@ -99,9 +104,14 @@ app.post('/M00949001/users', async(req, res) => {
         userId: result.insertedId,
       });
     })
+  
     .catch((error) => {
       res.status(500).json({ error: `Error during registration: ${error.message}` });
     });
+  } catch (error) {
+    res.status(500).json({ error: `Error during registration: ${error.message}` });
+  }
+  
 });
 
 // Login Route
@@ -406,7 +416,7 @@ app.get('/M00949001/contents/search', async (req, res) => {
     res.status(500).json({ error: `Error while searching contents: ${error.message}` });
   }
 });*/
-// GET /M00949001/contents/search (Search for content by title)
+// GET/search (Search for content by title)
 app.get('/M00949001/contents/search', async (req, res) => {
   const { q } = req.query;
 

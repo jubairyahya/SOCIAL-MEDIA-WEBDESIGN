@@ -369,37 +369,7 @@ searchResults.addEventListener('click', async (e) => {
 });
 
 
-/*// Search content by title
-searchForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
 
-  const query = document.getElementById('search-query').value.trim();
-  console.log(query, "id");
-
-  try {
-    const response = await fetch(`${apiBase}/contents/search?q=${encodeURIComponent(query)}`, {
-      credentials: 'include',
-    });
-
-    const results = await response.json();
-    if (response.ok) {
-      postList.innerHTML = results.map(post => `
-        <div class="post">
-          <h4>${post.username}</h4> <!-- Display the username here -->
-          <h5>${post.title}</h5> <!-- Content Title -->
-          <p>${post.content}</p> <!-- Content Body -->
-          ${post.image ? `<img src="${post.image}" alt="${post.title}">` : ''}
-        </div>
-      `).join('');
-    } else {
-      const data = await response.json();
-      alert(data.error || 'Failed to search posts');
-    }
-  } catch (err) {
-    console.error('Error during content search:', err);
-    alert('An error occurred while searching.');
-  }
-});*/
 // Search content by title
 searchForm.addEventListener('submit', async (e) => {
   e.preventDefault();
