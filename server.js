@@ -42,7 +42,7 @@ app.use(
     secret: "cst2120_secret_key",
     resave: false,
     saveUninitialized: true,
-    cookie: { maxAge: 3600000 }, 
+    cookie: { maxAge: 3600000 },
   })
 );
 
@@ -78,7 +78,7 @@ app.get('/M00949001/users', async (req, res) => {
 });
 
 // User Registration Route with Email
-app.post('/M00949001/users', async(req, res) => {
+app.post('/M00949001/users', async (req, res) => {
   const { username, email, password } = req.body;
 
   // Validate input
@@ -86,32 +86,32 @@ app.post('/M00949001/users', async(req, res) => {
     return res.status(400).json({ error: 'Username, password, and email are required' });
   }
 
-// check email is unique
-try {
-  // Check if email already exists in the database
-  const existingUser = await db.collection('users').findOne({ email });
-  if (existingUser) {
-    return res.status(400).json({ error: 'Email already taken!' });
-  }
+  // check email is unique
+  try {
+    // Check if email already exists in the database
+    const existingUser = await db.collection('users').findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ error: 'Email already taken!' });
+    }
 
-  // Insert user into MongoDB 
-  db.collection('users')
-    .insertOne({ username, email, password })
-    .then((result) => {
-      res.json({
-        registration: true,
-        message: 'User registered successfully',
-        userId: result.insertedId,
+    // Insert user into MongoDB 
+    db.collection('users')
+      .insertOne({ username, email, password })
+      .then((result) => {
+        res.json({
+          registration: true,
+          message: 'User registered successfully',
+          userId: result.insertedId,
+        });
+      })
+
+      .catch((error) => {
+        res.status(500).json({ error: `Error during registration: ${error.message}` });
       });
-    })
-  
-    .catch((error) => {
-      res.status(500).json({ error: `Error during registration: ${error.message}` });
-    });
   } catch (error) {
     res.status(500).json({ error: `Error during registration: ${error.message}` });
   }
-  
+
 });
 
 // Login Route
@@ -134,7 +134,7 @@ app.post('/M00949001/login', async (req, res) => {
       // Set session data
       req.session.isLoggedIn = true;
       req.session.userId = user._id;
-      req.session.email=user.email;
+      req.session.email = user.email;
 
       res.json({ message: 'Login successful', userId: user._id });
     })
@@ -276,9 +276,8 @@ app.get('/M00949001/follows', async (req, res) => {
   }
 });
 
-
 // Get Posts from Followed Users
-app.get('/M00949001/follows/posts', async (req, res) => {
+app.get('/M00949001/contents', async (req, res) => {
   const loggedInUserId = req.session.userId; // Assume userId is stored in the session
 
   if (!loggedInUserId) {
@@ -286,15 +285,28 @@ app.get('/M00949001/follows/posts', async (req, res) => {
   }
 
   try {
-    const followedUsers = await db.collection('users').find({ followerId: loggedInUserId }).toArray();
-
-    if (followedUsers.length === 0) {
-      return res.json([]);
+    // Retrieve the logged-in user's document to get their 'follows' list (user IDs of followed users)
+    console.log('Logged in userId:', loggedInUserId);
+    const loggedInUser = await db.collection('users').findOne({ _id: new ObjectId(loggedInUserId) });
+    
+    if (!loggedInUser || !loggedInUser.follows || loggedInUser.follows.length === 0) {
+      return res.json([]); // If no followed users, return empty array
     }
+    console.log('Followed users:', loggedInUser.follows);
+    // Get the followed userIds (no need to query by email, we already have userIds)
+    const followedUserIds = loggedInUser.follows;
 
-    const followedUserIds = followedUsers.map(follow => follow.followedId);
-    const posts = await db.collection('contents').find({ userId: { $in: followedUserIds } }).toArray();
-
+    if (followedUserIds.length === 0) {
+      return res.json([]); // No followed userIds found
+    }
+    console.log('Followed userIds:', followedUserIds);
+    // Fetch the posts from the followed users using their userIds
+    const posts = await db.collection('contents')
+      .find({ userId: { $in: followedUserIds.map(id => new ObjectId(id)) } })
+      .sort({ createdAt: -1 }) // Optional: sort posts by creation time
+      .toArray();
+      console.log('Fetched posts:', posts);
+    // Return posts of the followed users
     res.json(posts);
   } catch (error) {
     console.error('Error retrieving followed users\' posts:', error.message);
@@ -302,8 +314,9 @@ app.get('/M00949001/follows/posts', async (req, res) => {
   }
 });
 
+
 // Unfollow a User
-app.post('/M00949001/unfollow', async (req, res) => {
+app.delete('/M00949001/follow', async (req, res) => {
   const { email: unfollowEmail } = req.body;
 
   if (!req.session.isLoggedIn) {
@@ -348,6 +361,7 @@ app.post('/M00949001/unfollow', async (req, res) => {
   }
 });
 
+
 // Search Users Route
 app.get('/M00949001/users/search', async (req, res) => {
   const { q } = req.query;
@@ -371,17 +385,17 @@ app.get('/M00949001/users/search', async (req, res) => {
       res.status(500).json({ error: `Error while searching users: ${error.message}` });
     });
 });
-
-// View Posts by Specific User
-app.get('/M00949001/users/:userId/posts', async (req, res) => {
+//view contents of the search users
+app.get('/M00949001/users/:userId/contents', async (req, res) => {
   const { userId } = req.params;
+  console.log('Received request for user ID:', userId);
 
   if (!ObjectId.isValid(userId)) {
     return res.status(400).json({ error: 'Invalid userId' });
   }
 
   try {
-    const posts = await db.collection('contents').find({ userId: ObjectId(userId) }).toArray();
+    const posts = await db.collection('contents').find({ userId: new ObjectId(userId) }).toArray();
     if (posts.length === 0) {
       return res.status(404).json({ error: 'No posts found for this user' });
     }
@@ -392,30 +406,8 @@ app.get('/M00949001/users/:userId/posts', async (req, res) => {
   }
 });
 
-/*// Search Content by Title
-app.get('/M00949001/contents/search', async (req, res) => {
-  const { q } = req.query;
 
-  if (!q) {
-    return res.status(400).json({ error: 'Search query is required' });
-  }
 
-  try {
-    const contents = await db.collection('contents').find({ title: { $regex: q, $options: 'i' } }).toArray();
-    // For each content, fetch the username of the author
-    const contentsWithUsernames = await Promise.all(contents.map(async (content) => {
-      const user = await db.collection('users').findOne({ email: content.userEmail });
-      return {
-        ...content,
-        username: user ? user.username : 'Unknown' // Add username to content
-      };
-    }));
-
-    res.json(contentsWithUsernames);
-  } catch (error) {
-    res.status(500).json({ error: `Error while searching contents: ${error.message}` });
-  }
-});*/
 // GET/search (Search for content by title)
 app.get('/M00949001/contents/search', async (req, res) => {
   const { q } = req.query;
@@ -439,6 +431,6 @@ app.get('/M00949001/contents/search', async (req, res) => {
 
 // Start the Server
 app.listen(PORT, () => {
-  
+
   console.log(`Website available at http://localhost:${PORT}/M00949001`);
 });

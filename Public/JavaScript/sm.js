@@ -14,6 +14,8 @@ const searchForm = document.getElementById('search-form');
 const searchResults = document.getElementById('search-results');
 const followedPostList = document.getElementById('followed-post-list');
 const followedUsersList = document.getElementById('followed-users-list');
+const usernameDisplay = document.getElementById('username-display');
+const loggedInUsername = document.getElementById('logged-in-username');
 
 const apiBase = "http://localhost:8080/M00949001";
 
@@ -49,6 +51,8 @@ loginForm.addEventListener('submit', async (e) => {
       localStorage.setItem('username', username);
       authSection.classList.add('hidden');
       appSection.classList.remove('hidden');
+      usernameDisplay.classList.remove('hidden'); 
+      loggedInUsername.textContent = username; 
       loadPosts();
       loadFollowedPosts();
     } else {
@@ -101,6 +105,7 @@ logoutButton.addEventListener('click', async () => {
       localStorage.removeItem('username');
       appSection.classList.add('hidden');
       authSection.classList.remove('hidden');
+      usernameDisplay.classList.add('hidden'); 
     } else {
       alert('Failed to logout');
     }
@@ -176,22 +181,27 @@ async function loadPosts() {
 // Load followed users' posts
 async function loadFollowedPosts() {
   try {
-    const response = await fetch(`${apiBase}/follows/posts`, {
-      credentials: 'include',
+    console.log('Fetching followed posts from:', `${apiBase}/contents`);
+    const response = await fetch(`${apiBase}/contents`, {
+      credentials: 'include', // Ensures session cookies are sent
     });
 
     const posts = await response.json();
+    console.log('Response from API:', posts);
     if (response.ok) {
+      // Check if there are posts and render them
       followedPostList.innerHTML = posts.length
         ? posts.map(post => `
           <div class="followed-post">
             <h4>${post.title}</h4>
             <p>${post.content}</p>
             ${post.image ? `<img src="${post.image}" alt="${post.title}">` : ''}
+            <p><strong>Posted by:</strong> ${post.username || 'Anonymous'}</p>
           </div>
         `).join('')
         : '<p>No posts from followed users.</p>';
     } else {
+      // Show an error message if the response is not okay
       alert(posts.error || 'Failed to load followed posts');
     }
   } catch (err) {
@@ -200,6 +210,8 @@ async function loadFollowedPosts() {
   }
 }
 
+// Call this function to load the posts when the page loads
+loadFollowedPosts();
 
 // Handle search form submission
 searchForm.addEventListener('submit', async (e) => {
@@ -296,7 +308,8 @@ async function loadFollowedUsers() {
   }
 }
 
-// Handle unfollow user
+
+// Unfollow user functionality
 document.addEventListener('click', async (e) => {
   if (e.target && e.target.classList.contains('unfollow-btn')) {
     const unfollowEmail = e.target.getAttribute('data-followed-email');
@@ -307,10 +320,10 @@ document.addEventListener('click', async (e) => {
     }
 
     try {
-      const response = await fetch(`${apiBase}/unfollow`, {
-        method: 'POST',
+      const response = await fetch(`${apiBase}/follow`, {
+        method: 'DELETE',  // Change the method to DELETE
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+        credentials: 'include',  // Ensures session cookies are sent
         body: JSON.stringify({ email: unfollowEmail }),
       });
 
@@ -328,8 +341,10 @@ document.addEventListener('click', async (e) => {
   }
 });
 
+
 // Initialize followed users when the page loads
 loadFollowedUsers();
+
 
 // Event listener for view-user-posts
 searchResults.addEventListener('click', async (e) => {
@@ -338,36 +353,39 @@ searchResults.addEventListener('click', async (e) => {
 
     // Retrieve the userId from the clicked element's data attribute
     const userId = e.target.getAttribute('data-user-id');
+    console.log('Clicked user ID:', userId);
     if (!userId) {
       alert('User ID is missing.');
       return;
     }
 
     try {
-      // Fetch posts for the specific user by their userId
-      const response = await fetch(`${apiBase}/users/${userId}/posts`, {
+      // Corrected endpoint to match the backend route
+      console.log('Fetching posts for user ID:', userId);
+      const response = await fetch(`${apiBase}/users/${userId}/contents`, {
         credentials: 'include',
       });
 
-      const posts = await response.json();
-      if (response.ok) {
-        followedPostList.innerHTML = posts.map(post => `
-          <div class="post">
-            <h4>${post.title}</h4>
-            <p>${post.content}</p>
-            ${post.image ? `<img src="${post.image}" alt="${post.title}">` : ''}
-          </div>
-        `).join('');
-      } else {
-        alert(posts.error || 'Failed to load user posts.');
+      if (!response.ok) {
+        console.error('Failed response status:', response.status);
+        throw new Error(`HTTP error! Status: ${response.status}`);
       }
+
+      const posts = await response.json();
+      console.log('Fetched posts:', posts);
+      followedPostList.innerHTML = posts.map(post => `
+        <div class="post">
+          <h4>${post.title}</h4>
+          <p>${post.content}</p>
+          ${post.image ? `<img src="${post.image}" alt="${post.title}">` : ''}
+        </div>
+      `).join('');
     } catch (err) {
       console.error('Error during loading user posts:', err);
       alert('An error occurred while fetching user posts.');
     }
   }
 });
-
 
 
 // Search content by title
@@ -402,31 +420,34 @@ searchForm.addEventListener('submit', async (e) => {
   }
 });
 
-
 // View search user posts
 async function viewUserPosts(userId) {
   try {
-    const response = await fetch(`${apiBase}/users/${userId}/posts`, {
+    const response = await fetch(`${apiBase}/users/${userId}/contents`, {
       credentials: 'include',
     });
 
     const posts = await response.json();
     if (response.ok) {
-      postList.innerHTML = posts.map(post => `
-        <div class="post">
-          <h4>${post.title}</h4>
-          <p>${post.content}</p>
-          ${post.image ? `<img src="${post.image}" alt="${post.title}">` : ''}
-        </div>
-      `).join('');
+      postList.innerHTML = posts.length
+        ? posts.map(post => `
+          <div class="post">
+            <h4>${post.title}</h4>
+            <p>${post.content}</p>
+            ${post.image ? `<img src="${post.image}" alt="${post.title}">` : ''}
+          </div>
+        `).join('')
+        : '<p>No posts found for this user.</p>';
     } else {
-      alert('Failed to load user posts');
+      alert(posts.error || 'Failed to load user posts');
     }
   } catch (err) {
     console.error('Error loading user posts:', err);
     postList.innerHTML = '<p>Failed to load user posts. Check console for details.</p>';
   }
 }
+
+viewUserPosts();
 
 // Initialize app by checking login status
 async function initializeApp() {
