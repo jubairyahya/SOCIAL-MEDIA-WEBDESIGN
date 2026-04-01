@@ -1,481 +1,253 @@
-// Select elements
-const authSection = document.getElementById('auth-section');
-const appSection = document.getElementById('app-section');
-const loginForm = document.getElementById('login-form');
-const registerForm = document.getElementById('register-form');
-const newPostForm = document.getElementById('new-post-form');
-const postList = document.getElementById('post-list');
-const logoutButton = document.getElementById('logout');
-const showRegister = document.getElementById('show-register');
-const showLogin = document.getElementById('show-login');
-const registerView = document.getElementById('register-view');
-const loginView = document.getElementById('login-view');
-const searchForm = document.getElementById('search-form');
-const searchResults = document.getElementById('search-results');
-const followedPostList = document.getElementById('followed-post-list');
-const followedUsersList = document.getElementById('followed-users-list');
+const apiBase = "http://localhost:8080";
+let currentChatUserId = null;
+let myUserId = null;
 
-const apiBase = "http://localhost:8080/M00949001";
-
-// Show Register form
-showRegister.addEventListener('click', () => {
-  loginView.classList.add('hidden');
-  registerView.classList.remove('hidden');
-});
-
-// Show Login form
-showLogin.addEventListener('click', () => {
-  registerView.classList.add('hidden');
-  loginView.classList.remove('hidden');
-});
-
-// Handle login
-loginForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-
-  const username = document.getElementById('login-username').value.trim();
-  const password = document.getElementById('login-password').value.trim();
-
-  try {
-    const response = await fetch(`${apiBase}/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-      credentials: 'include', // Ensure session cookies are sent
-    });
-
-    const data = await response.json();
-    if (response.ok) {
-      localStorage.setItem('username', username);
-      authSection.classList.add('hidden');
-      appSection.classList.remove('hidden');
-      loadPosts();
-      loadFollowedPosts();
-    } else {
-      alert(data.error || 'Login failed');
-    }
-  } catch (err) {
-    console.error('Error during login:', err);
-    alert('An error occurred while logging in.');
-  }
-});
-
-// Handle registration
-registerForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-
-  const username = document.getElementById('register-username').value.trim();
-  const email = document.getElementById('register-email').value.trim();
-  const password = document.getElementById('register-password').value.trim();
-
-  try {
-    const response = await fetch(`${apiBase}/users`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, email, password }),
-    });
-
-    const data = await response.json();
-    if (response.ok) {
-      alert('Registration successful. Please log in.');
-      registerView.classList.add('hidden');
-      loginView.classList.remove('hidden');
-    } else {
-      alert(data.error || 'Registration failed');
-    }
-  } catch (err) {
-    console.error('Error during registration:', err);
-    alert('An error occurred while registering.');
-  }
-});
-
-// Logout
-logoutButton.addEventListener('click', async () => {
-  try {
-    const response = await fetch(`${apiBase}/login`, {
-      method: 'DELETE',
-      credentials: 'include',
-    });
-
-    if (response.ok) {
-      localStorage.removeItem('username');
-      appSection.classList.add('hidden');
-      authSection.classList.remove('hidden');
-    } else {
-      alert('Failed to logout');
-    }
-  } catch (err) {
-    console.error('Error during logout:', err);
-  }
-});
-
-// Handle new post submission
-newPostForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-
-  const title = document.getElementById('title').value.trim();
-  const content = document.getElementById('tip').value.trim();
-  const image = document.getElementById('image').files[0];
-
-  const formData = new FormData();
-  formData.append('title', title);
-  formData.append('content', content);
-  if (image) formData.append('image', image);
-
-  try {
-    const response = await fetch(`${apiBase}/contents`, {
-      method: 'POST',
-      credentials: 'include', // Ensure session cookies are sent
-      body: formData,
-    });
-
-    const data = await response.json();
-    if (response.ok) {
-      loadPosts();
-      alert('Post created successfully!');
-      newPostForm.reset(); // Reset form after successful submission
-    } else {
-      alert(data.error || 'Failed to create post');
-    }
-  } catch (err) {
-    console.error('Error during post creation:', err);
-    alert('An error occurred while creating the post.');
-  }
-});
-
-// Load posts from the server
-async function loadPosts() {
-  try {
-    const response = await fetch(`${apiBase}/contents`, {
-      credentials: 'include', // Ensure session cookies are sent
-    });
-
-    const data = await response.json();
-    if (response.ok) {
-      if (data.contents.length === 0) {
-        postList.innerHTML = '<p>No posts available</p>';
-      } else {
-        postList.innerHTML = data.contents.map(post => `
-          <div class="post">
-            <h4>${post.title}</h4>
-            <p>${post.content}</p>
-            ${post.image ? `<img src="${post.image}" alt="${post.title}">` : ''}
-          </div>
-        `).join('');
-      }
-    } else {
-      alert(data.error || 'Failed to load posts');
-    }
-  } catch (err) {
-    console.error('Error loading posts:', err);
-    postList.innerHTML = '<p>Failed to load posts. Check console for details.</p>';
-  }
-}
-
-
-// Load followed users' posts
-async function loadFollowedPosts() {
-  try {
-    const response = await fetch(`${apiBase}/follows/posts`, {
-      credentials: 'include',
-    });
-
-    const posts = await response.json();
-    if (response.ok) {
-      followedPostList.innerHTML = posts.length
-        ? posts.map(post => `
-          <div class="followed-post">
-            <h4>${post.title}</h4>
-            <p>${post.content}</p>
-            ${post.image ? `<img src="${post.image}" alt="${post.title}">` : ''}
-          </div>
-        `).join('')
-        : '<p>No posts from followed users.</p>';
-    } else {
-      alert(posts.error || 'Failed to load followed posts');
-    }
-  } catch (err) {
-    console.error('Error loading followed posts:', err);
-    followedPostList.innerHTML = '<p>Failed to load followed posts. Check console for details.</p>';
-  }
-}
-
-
-// Handle search form submission
-searchForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-
-  const query = document.getElementById('search-query').value.trim();
-
-  try {
-    const response = await fetch(`${apiBase}/users/search?q=${encodeURIComponent(query)}`, {
-      credentials: 'include',
-    });
-
-    const results = await response.json();
-
-
-    if (response.ok) {
-      searchResults.innerHTML = results.map(result => `
-        <div class="result">
-          <h4><a href="#" class="view-user-posts" data-user-id="${result.id}">${result.username}</a></h4>
-          <p>${result.email}</p>
-         <button class="follow-btn" data-followed-email="${result.email}">Follow</button>
-        </div>
-      `).join('');
-    } else {
-      alert(results.error || 'Search failed');
-    }
-  } catch (err) {
-    console.error('Error during search:', err);
-    alert('An error occurred while searching.');
-  }
-
-
-});
-
-
-
-// Follow user functionality
-document.addEventListener('click', async (e) => {
-  if (e.target && e.target.classList.contains('follow-btn')) {
-    const followedEmail = e.target.getAttribute('data-followed-email');
-
-    if (!followedEmail) {
-      alert('Followed user email is missing.');
-      return;
-    }
-
+// --- 1. INITIALIZATION & AUTH CHECK ---
+// Update your Init function to show the Nav and FAB
+async function init() {
     try {
-      const response = await fetch(`${apiBase}/follows`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ email: followedEmail }),
-      });
+        const res = await fetch(`${apiBase}/login-check`);
+        const data = await res.json();
+        
+        if (data.loggedIn) {
+            // 1. Store the User ID (Crucial for messaging)
+            myUserId = data.userId;
 
-      const data = await response.json();
-      if (response.ok) {
-        alert('User followed successfully');
-        loadFollowedPosts();
-      } else {
-        alert(data.error || 'Failed to follow user');
-      }
-    } catch (err) {
-      console.error('Error following user:', err);
-      alert('An error occurred while following user');
+            // 2. Hide Login/Register, Show App
+            document.getElementById('auth-section').classList.add('hidden');
+            document.getElementById('app-section').classList.remove('hidden');
+            
+            // 3. Show Navigation & Floating Action Button
+            document.getElementById('app-nav').classList.remove('hidden');
+            document.getElementById('fab').classList.remove('hidden'); 
+            
+            // 4. Ensure the Search bar (in header) is visible
+            // Note: If your search-container has the 'hidden' class in HTML, remove it here
+            const searchBar = document.querySelector('.search-container');
+            if (searchBar) searchBar.classList.remove('hidden');
+
+            // 5. Load Data
+            showTab('feed-tab'); 
+            loadFeed(); 
+            loadProfileStats();
+        } else {
+            // Optional: Ensure everything is hidden if NOT logged in
+            document.getElementById('auth-section').classList.remove('hidden');
+            document.getElementById('app-nav').classList.add('hidden');
+            document.getElementById('fab').classList.add('hidden');
+        }
+    } catch (err) { 
+        console.error("Server Down or Connection Error:", err); 
     }
-  }
-
-});
-// Load followed users
-async function loadFollowedUsers() {
-  try {
-    const response = await fetch(`${apiBase}/follows`, {
-      credentials: 'include', // Ensure session cookies are sent
-    });
-
-    const data = await response.json();
-    if (response.ok) {
-      if (data.followedUsers.length === 0) {
-        followedUsersList.innerHTML = '<p>You are not following any users yet.</p>';
-      } else {
-        followedUsersList.innerHTML = data.followedUsers.map(user => `
-          <div class="followed-user">
-            <h4>${user.username}</h4>
-            <button class="unfollow-btn" data-followed-email="${user.email}">Unfollow</button>
-          </div>
-        `).join('');
-      }
-    } else {
-      alert(data.error || 'Failed to load followed users');
-    }
-  } catch (err) {
-    console.error('Error loading followed users:', err);
-    followedUsersList.innerHTML = '<p>Failed to load followed users. Check console for details.</p>';
-  }
 }
 
-// Handle unfollow user
-document.addEventListener('click', async (e) => {
-  if (e.target && e.target.classList.contains('unfollow-btn')) {
-    const unfollowEmail = e.target.getAttribute('data-followed-email');
+// --- 2. TAB NAVIGATION ---
+function showTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+    const target = document.getElementById(tabId);
+    if (target) target.classList.remove('hidden');
+    
+    // Auto-load inbox if that tab is selected
+    if(tabId === 'inbox-tab') loadInbox();
+}
 
-    if (!unfollowEmail) {
-      alert('Unfollowed user email is missing.');
-      return;
-    }
-
-    try {
-      const response = await fetch(`${apiBase}/unfollow`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ email: unfollowEmail }),
-      });
-
-      const data = await response.json();
-      if (response.ok) {
-        alert('User unfollowed successfully');
-        loadFollowedUsers(); // Reload followed users list
-      } else {
-        alert(data.error || 'Failed to unfollow user');
-      }
-    } catch (err) {
-      console.error('Error unfollowing user:', err);
-      alert('An error occurred while unfollowing user');
-    }
-  }
-});
-
-// Initialize followed users when the page loads
-loadFollowedUsers();
-
-// Event listener for view-user-posts
-searchResults.addEventListener('click', async (e) => {
-  if (e.target && e.target.classList.contains('view-user-posts')) {
+// --- 3. LOGIN & REGISTER ---
+document.getElementById('show-register').onclick = (e) => {
     e.preventDefault();
+    document.getElementById('login-view').classList.add('hidden');
+    document.getElementById('register-view').classList.remove('hidden');
+};
 
-    // Retrieve the userId from the clicked element's data attribute
-    const userId = e.target.getAttribute('data-user-id');
-    if (!userId) {
-      alert('User ID is missing.');
-      return;
-    }
+document.getElementById('show-login').onclick = (e) => {
+    e.preventDefault();
+    document.getElementById('register-view').classList.add('hidden');
+    document.getElementById('login-view').classList.remove('hidden');
+};
 
-    try {
-      // Fetch posts for the specific user by their userId
-      const response = await fetch(`${apiBase}/users/${userId}/posts`, {
-        credentials: 'include',
-      });
-
-      const posts = await response.json();
-      if (response.ok) {
-        followedPostList.innerHTML = posts.map(post => `
-          <div class="post">
-            <h4>${post.title}</h4>
-            <p>${post.content}</p>
-            ${post.image ? `<img src="${post.image}" alt="${post.title}">` : ''}
-          </div>
-        `).join('');
-      } else {
-        alert(posts.error || 'Failed to load user posts.');
-      }
-    } catch (err) {
-      console.error('Error during loading user posts:', err);
-      alert('An error occurred while fetching user posts.');
-    }
-  }
-});
-
-
-/*// Search content by title
-searchForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-
-  const query = document.getElementById('search-query').value.trim();
-  console.log(query, "id");
-
-  try {
-    const response = await fetch(`${apiBase}/contents/search?q=${encodeURIComponent(query)}`, {
-      credentials: 'include',
+document.getElementById('login-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const res = await fetch(`${apiBase}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            email: document.getElementById('login-email').value,
+            password: document.getElementById('login-password').value
+        })
     });
+    if (res.ok) location.reload(); else alert("Login Failed");
+};
 
-    const results = await response.json();
-    if (response.ok) {
-      postList.innerHTML = results.map(post => `
-        <div class="post">
-          <h4>${post.username}</h4> <!-- Display the username here -->
-          <h5>${post.title}</h5> <!-- Content Title -->
-          <p>${post.content}</p> <!-- Content Body -->
-          ${post.image ? `<img src="${post.image}" alt="${post.title}">` : ''}
-        </div>
-      `).join('');
-    } else {
-      const data = await response.json();
-      alert(data.error || 'Failed to search posts');
-    }
-  } catch (err) {
-    console.error('Error during content search:', err);
-    alert('An error occurred while searching.');
-  }
-});*/
-// Search content by title
-searchForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-
-  const query = document.getElementById('search-query').value.trim();
-  console.log(query, "id");
-
-  try {
-    const response = await fetch(`${apiBase}/contents/search?q=${encodeURIComponent(query)}`, {
-      credentials: 'include',
+document.getElementById('register-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const res = await fetch(`${apiBase}/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            username: document.getElementById('register-username').value,
+            email: document.getElementById('register-email').value,
+            password: document.getElementById('register-password').value
+        })
     });
+    if (res.ok) { alert("Success! Please Login."); document.getElementById('show-login').click(); }
+};
 
-    const results = await response.json();
-    if (response.ok) {
-      postList.innerHTML = results.map(post => `
-        <div class="post">
-          <h4>${post.username}</h4> <!-- Display the username here -->
-          <h5>${post.title}</h5> <!-- Content Title -->
-          <p>${post.content}</p> <!-- Content Body -->
-          ${post.image ? `<img src="${post.image}" alt="${post.title}">` : ''}
-        </div>
-      `).join('');
-    } else {
-      const data = await response.json();
-      alert(data.error || 'Failed to search posts');
-    }
-  } catch (err) {
-    console.error('Error during content search:', err);
-    alert('An error occurred while searching.');
-  }
-});
-
-
-// View search user posts
-async function viewUserPosts(userId) {
-  try {
-    const response = await fetch(`${apiBase}/users/${userId}/posts`, {
-      credentials: 'include',
-    });
-
-    const posts = await response.json();
-    if (response.ok) {
-      postList.innerHTML = posts.map(post => `
-        <div class="post">
-          <h4>${post.title}</h4>
-          <p>${post.content}</p>
-          ${post.image ? `<img src="${post.image}" alt="${post.title}">` : ''}
-        </div>
-      `).join('');
-    } else {
-      alert('Failed to load user posts');
-    }
-  } catch (err) {
-    console.error('Error loading user posts:', err);
-    postList.innerHTML = '<p>Failed to load user posts. Check console for details.</p>';
-  }
+// --- 4. FEED, SEARCH & POSTING ---
+async function loadFeed() {
+    const res = await fetch(`${apiBase}/feed`);
+    const data = await res.json();
+    renderPosts(data.feed);
 }
 
-// Initialize app by checking login status
-async function initializeApp() {
-  try {
-    const response = await fetch(`${apiBase}/login`, {
-      credentials: 'include',
-    });
-
-    const data = await response.json();
-    if (data.loggedIn) {
-      authSection.classList.add('hidden');
-      appSection.classList.remove('hidden');
-      loadPosts();
-      loadFollowedPosts();
-    }
-  } catch (err) {
-    console.error('Error initializing app:', err);
-  }
+// FIXED SEARCH FUNCTION
+async function searchContent() {
+    const q = document.getElementById('search-query').value;
+    if(!q) return loadFeed();
+    
+    const res = await fetch(`${apiBase}/search?q=${q}`);
+    const posts = await res.json();
+    renderPosts(posts);
 }
 
-// Run on load
-initializeApp();
+function renderPosts(posts) {
+    const list = document.getElementById('post-list');
+    list.innerHTML = posts.map(post => {
+        const isNotMine = post.userId !== myUserId; // Fix: Check if post belongs to someone else
+        
+        return `
+        <div class="post">
+            <div class="post-header"><strong>@${post.username}</strong></div>
+            <img src="${post.image}" alt="Travel Image">
+            <div class="post-body">
+                <h3>${post.title}</h3>
+                <p>${post.description}</p>
+            </div>
+            <div class="post-actions">
+                ${isNotMine ? `
+                    <button class="btn-insta-blue" onclick="follow('${post.userId}')">Follow</button>
+                    <button class="btn-insta-grey" onclick="openDirectChat('${post.userId}', '${post.username}')">Message</button>
+                ` : `<span class="my-post-tag">Your Post</span>`}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+document.getElementById('new-post-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const res = await fetch(`${apiBase}/contents`, { method: 'POST', body: formData });
+    if (res.ok) { e.target.reset(); loadFeed(); }
+};
+
+// --- 5. SOCIAL & MESSAGING ---
+async function follow(id) {
+    await fetch(`${apiBase}/follow/${id}`, { method: 'POST' });
+    loadFeed(); loadProfileStats();
+}
+
+// --- UPDATED MESSENGER LOGIC ---
+
+async function loadInbox() {
+    const res = await fetch(`${apiBase}/inbox`);
+    const msgs = await res.json();
+    const list = document.getElementById('inbox-list');
+    
+    const partners = new Map();
+
+    msgs.forEach(m => {
+        // Convert IDs to strings to ensure comparison works
+        const sId = m.senderId.toString();
+        const rId = m.receiverId.toString();
+        const me = myUserId.toString();
+
+        const isISentIt = sId === me;
+        const partnerId = isISentIt ? rId : sId;
+        
+        let partnerName = "User";
+        if (!isISentIt) {
+            partnerName = m.senderName || "New Contact"; 
+        } else {
+            partnerName = m.receiverName || "Chat Partner";
+        }
+
+        if (partnerName.includes("Contact") || partnerName.includes("Partner")) {
+            if (partnerId) partnerName = "User_" + partnerId.substring(0, 4);
+        }
+
+        if (partnerId && partnerId !== me) {
+            partners.set(partnerId, partnerName);
+        }
+    });
+
+    list.innerHTML = Array.from(partners).map(([id, name]) => `
+        <div class="inbox-card" onclick="openDirectChat('${id}','${name}')">
+            <strong>${name}</strong>
+            <p style="font-size:0.75rem; margin:0; color:var(--text-muted);">View conversation</p>
+        </div>
+    `).join('') || "<p style='padding:20px;'>No messages found.</p>";
+}
+
+async function openDirectChat(id, name) {
+    currentChatUserId = id;
+    showTab('inbox-tab');
+    
+    const chatWin = document.getElementById('chat-window');
+    const nameHeader = document.getElementById('chat-with-name');
+    const historyDiv = document.getElementById('message-history');
+
+    chatWin.classList.remove('hidden');
+    nameHeader.innerText = name; 
+    
+    const res = await fetch(`${apiBase}/messages/${id}`);
+    const history = await res.json();
+    
+    historyDiv.innerHTML = history.map(m => {
+        // Force string comparison for safety
+        const side = (m.senderId.toString() === myUserId.toString()) ? 'sent' : 'received';
+        return `<div class="msg-bubble ${side}">${m.text}</div>`;
+    }).join('');
+    
+    historyDiv.scrollTop = historyDiv.scrollHeight;
+}
+
+// --- IMPORTANT: Update the Send Button ---
+document.getElementById('send-reply-btn').onclick = async () => {
+    const input = document.getElementById('reply-text');
+    const text = input.value.trim();
+    
+    // Safety check: ensure we have a partner and text
+    if(!text || !currentChatUserId) return;
+
+    const res = await fetch(`${apiBase}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            receiverId: currentChatUserId, 
+            text: text 
+        })
+    });
+
+    if(res.ok) {
+        input.value = "";
+        // Re-fetch chat history immediately
+        const currentName = document.getElementById('chat-with-name').innerText;
+        openDirectChat(currentChatUserId, currentName);
+    }
+};
+
+// --- 6. SETTINGS ---
+async function loadProfileStats() {
+    const res = await fetch(`${apiBase}/profile/stats`);
+    if(res.ok) {
+        const data = await res.json();
+        document.getElementById('user-stats').innerHTML = `<b>${data.username}</b> | Followers: ${data.followers}`;
+        document.getElementById('user-stats').classList.remove('hidden');
+    }
+}
+
+document.getElementById('logout').onclick = async () => { 
+    await fetch(`${apiBase}/login`, { method: 'DELETE' }); 
+    location.reload(); 
+};
+
+// BOOT THE APP
+init();

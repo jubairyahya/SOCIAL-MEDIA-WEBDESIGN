@@ -1,153 +1,373 @@
-/* General Styling */
-body {
-    background-image: url('../Images/logobg.png');
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    height: 100vh;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: center;
-    text-align: center;
-    font-family: Arial, Helvetica, sans-serif;
-    position: relative;
-}
-/* Position header in the left middle */
-header {
-    color: white;
-    padding: 1em;
-    text-shadow: 3px 3px 5px black, -3px -3px 5px silver;
-    position: absolute; /* Absolute positioning relative to the body */
-    top: 50%; /* Position vertically at the middle */
-    left: 0; /* Align to the left of the screen */
-    transform: translateY(-50%); /* Adjust to exactly center it vertically */
-    z-index: 1000; /* Ensure it stays on top of other content */
-    width: auto; /* Ensure the header is not too wide */
+/* --- ZUZU CONNECT: HIGH TECH 3D LIGHT THEME --- */
+:root {
+    --bg-light: #e0e5ec; /* Not pure white, essential for neumorphic 3D */
+    --primary-blue: #0095f6;
+    --primary-hover: #1877f2;
+    --text-main: #2c3e50;
+    --text-muted: #7f8c8d;
+    
+    /* 3D Soft Shadow Variables */
+    --shadow-out: 9px 9px 16px rgba(163, 177, 198, 0.6), 
+                  -9px -9px 16px rgba(255, 255, 255, 0.5);
+    --shadow-in: inset 6px 6px 10px rgba(163, 177, 198, 0.5), 
+                 inset -6px -6px 10px rgba(255, 255, 255, 0.5);
+    --shadow-btn-hover: 4px 4px 6px rgba(163, 177, 198, 0.5), 
+                        -4px -4px 6px rgba(255, 255, 255, 0.5);
 }
 
+body {
+    background: url('../Images/whitiebg.jpg') no-repeat center center fixed;
+    background-color: var(--bg-light);
+    font-family: 'Inter', -apple-system, sans-serif;
+    margin: 0;
+    color: var(--text-main);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+}
+
+/* --- CLEAN HEADER --- */
+header {
+    width: 100%;
+    background: var(--bg-light);
+    padding: 20px 0;
+    text-align: center;
+    box-shadow: 0 4px 10px rgba(163, 177, 198, 0.3);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--primary-blue);
+    text-shadow: 1px 1px 1px rgba(255,255,255,0.5);
+}
+
+#user-stats {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: 5px;
+}
+
+/* --- VERTICAL LAYOUT CONTAINER --- */
 main {
-    max-width: 800px;
-    margin: 2em auto;
-    padding: 1em;
-    background: grey;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    border-radius: 10px;
+    width: 90%;
+    max-width: 600px; 
+    margin: 40px auto;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+/* --- THE 3D PANELS --- */
+#auth-section, .tab-content {
+    background: var(--bg-light);
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: var(--shadow-out); 
+}
+
+form {
+    display: flex;
+    flex-direction: column; 
+    gap: 15px;
+}
+
+/* --- 3D INPUT FIELDS --- */
+input, textarea {
+    width: 100%;
+    padding: 15px;
+    border: none;
+    border-radius: 12px;
+    background: var(--bg-light);
+    font-size: 1rem;
+    color: var(--text-main);
+    box-shadow: var(--shadow-in); 
+    box-sizing: border-box; 
+    transition: box-shadow 0.3s ease;
+}
+
+input:focus, textarea:focus {
+    outline: none;
+    box-shadow: inset 2px 2px 4px rgba(163, 177, 198, 0.5), 
+                inset -2px -2px 4px rgba(255, 255, 255, 0.5);
+}
+
+/* --- BUTTONS --- */
+button[type="submit"], #send-reply-btn {
+    align-self: center; 
+    min-width: 160px;
+    padding: 12px 24px;
+    background-color: var(--primary-blue);
+    color: white;
+    border: none;
+    border-radius: 30px; 
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    box-shadow: var(--shadow-btn-hover);
+    transition: all 0.2s ease;
+    margin-top: 10px;
+}
+
+button[type="submit"]:hover {
+    background-color: var(--primary-hover);
+    transform: translateY(-2px);
+}
+
+button[type="submit"]:active {
+    transform: translateY(1px);
+    box-shadow: inset 2px 2px 4px rgba(0,0,0,0.2);
+}
+
+/* --- NAVIGATION TABS --- */
+.tabs {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 10px 0;
+}
+.tabs button {
+    background: var(--bg-light);
+    color: var(--text-muted);
+    border: none;
+    padding: 10px 20px;
+    border-radius: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: var(--shadow-out);
+    transition: 0.2s;
+}
+
+.tabs button.active-tab {
+    box-shadow: var(--shadow-in);
+    color: var(--primary-blue);
+}
+
+#logout { color: #e74c3c; }
+
+/* --- THE 3D POST CARDS --- */
+.post {
+    background: var(--bg-light);
+    border-radius: 20px;
+    overflow: hidden;
+    margin-bottom: 30px;
+    box-shadow: var(--shadow-out);
+}
+
+.post img {
+    width: 100%;
+    height: 350px;
+    object-fit: cover;
+    display: block;
+}
+
+.post-body { padding: 20px; }
+.post-actions {
+    padding: 15px 20px;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-start;
+    border-top: 1px solid rgba(163, 177, 198, 0.2);
+}
+/* This adds space around the @username in the feed */
+.post h4, .post .post-header {
+    padding: 15px 20px 5px 20px; /* Top, Right, Bottom, Left */
+    margin: 0;
+    font-weight: 700;
+    color: var(--primary-blue);
+}
+
+.btn-insta-blue {
+    background: var(--primary-blue);
+    color: white;
+    border-radius: 20px;
+    padding: 8px 16px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-insta-grey {
+    background: #cad3e0;
+    color: var(--text-main);
+    border-radius: 20px;
+    padding: 8px 16px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+}
+
+/* --- MESSAGING & CHAT --- */
+.top-nav-wrapper {
+    position: sticky;
+    top: 0;
+    width: 100%;
+    z-index: 1000;
+    background: var(--bg-light);
+}
+
+#messenger-container {
+    display: flex;
+    height: 65vh; /* Adjusted for better fit */
+    background: var(--bg-light);
+    border-radius: 20px;
+    box-shadow: var(--shadow-out);
+    overflow: hidden;
+}
+
+#inbox-list {
+    width: 35%;
+    border-right: 1px solid rgba(0,0,0,0.1);
+    overflow-y: auto;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Style each person in your message list */
+#inbox-list > div, #inbox-list button {
+    padding: 15px 20px; /* This pushes the name away from the left edge */
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    width: 100%;
+    text-align: left; /* Keeps names aligned to the left */
+    display: block;
+    background: transparent;
+    border-left: none;
+    border-right: none;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+#inbox-list div:hover {
+    background: rgba(0, 149, 246, 0.05); /* Light blue highlight on hover */
+}
+
+#chat-window {
+    width: 65%;
+    display: flex;
+    flex-direction: column;
+}
+
+#message-history {
+    flex: 1;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
     overflow-y: auto;
 }
 
-footer {
-    margin-top: 2em;
+.msg-bubble {
+    max-width: 75%;
+    padding: 12px;
+    border-radius: 18px;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.msg-bubble.sent {
+    align-self: flex-end;
+    background-color: var(--primary-blue);
     color: white;
-    text-shadow: 1px 1px 2px black;
+    border-bottom-right-radius: 4px;
+    box-shadow: 4px 4px 10px rgba(0, 149, 246, 0.2);
 }
 
-h2 {
-    color: black;
+.msg-bubble.received {
+    align-self: flex-start;
+    background-color: #cad3e0;
+    color: var(--text-main);
+    border-bottom-left-radius: 4px;
+    box-shadow: var(--shadow-out);
+}
+.search-container {
+    width: 90%;
+    max-width: 500px;
+    margin: 10px auto 0;
+    padding-bottom: 10px;
 }
 
-h3 {
-    color: rgb(162, 152, 152);
-    text-shadow: 3px 3px 5px black, -3px -3px 5px black;
-    text-decoration: solid;
-    font-size: larger;
-    text-align: center; /* Centers the text horizontally */
-    margin: 10px auto; /* Centers the element horizontally if it has a width */
-    max-width: 800px; /* Optional: Adds a width constraint for better readability */
-    line-height: 1.6; /* Adjusts line spacing for readability */
-}
-form {
-    color: gray;
-    background-color: rgb(31, 28, 28);
-    display: flex;
-    flex-direction: column;
-    margin-bottom: 1em;
-}
-
-form input,
-form textarea,
-form button {
-    margin: 0.5em 0;
-    padding: 0.8em;
-    font-size: 1em;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-}
-
-button {
-    background-color: rgb(43, 35, 35);
-    color: silver;
-    border: none;
-    cursor: pointer;
-    border-radius: 5px;
-}
-
-button:hover {
-    background-color: rgb(117, 106, 106);
-}
-
-.hidden {
-    display: none;
-}
-
-/* Position the search container in the top-right corner */
-#search-container {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-#search-container input {
-    padding: 0.5em;
-    border-radius: 5px;
-}
-
-#search-results-container {
-    margin-top: 2em;
-}
-
-#search-results {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1em;
-}
-
-.result {
-    background: silver;
-    border: 1px solid #ddd;
-    padding: 1em;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-#post-list,
-#followed-post-list {
-    display: grid;
-    gap: 1em;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-}
-
-.post,
-.followed-post {
-    background: silver;
-    padding: 1em;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.post img,
-.followed-post img {
-    width: 100%;
-    border-radius: 8px;
-}
-
-#logout-container {
-    margin-top: 2em;
+/* Container for input + button */
+.search-box {
     display: flex;
     justify-content: center;
+    align-items: center;
+    gap: 10px; /* Space between input and button */
+    margin-top: 10px;
 }
+
+/* Style the Search Input */
+#search-query {
+    flex: 1;
+    max-width: 300px;
+    padding: 12px 20px;
+    border-radius: 25px;
+    border: none;
+    box-shadow: var(--shadow-in); /* Neumorphic inner shadow */
+}
+
+.search-box input {
+    flex: 1; /* Takes up remaining space */
+    padding: 12px 20px;
+    border-radius: 25px;
+    font-size: 0.9rem;
+    box-shadow: var(--shadow-in); /* Keeps the 3D look */
+}
+
+/* Style the Search Button */
+#search-btn {
+    background-color: var(--primary-blue);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 25px;
+    border: none;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: var(--shadow-btn-hover);
+    margin: 0; /* Remove default margins */
+    transition: 0.3s;
+}
+
+#search-btn:hover {
+    background-color: var(--primary-hover);
+    transform: translateY(-2px);
+}
+
+/* Styling for the (+) button when it's inside the Nav bar */
+#fab {
+    background-color: var(--primary-blue);
+    color: white;
+    border: none;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%; /* Keeps it a circle */
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 10px; /* Separates it slightly from 'Settings' */
+    box-shadow: var(--shadow-btn-hover);
+    transition: all 0.3s ease;
+}
+
+#fab:hover {
+    background-color: var(--primary-hover);
+    transform: scale(1.1);
+}
+
+.fab:active {
+    transform: scale(0.9);
+}
+
+/* Ensure the main content doesn't get hidden under the sticky header */
+main {
+    margin-top: 160px; /* Adjust this based on your header height */
+}
+/* --- UTILS --- */
+.hidden { display: none !important; }

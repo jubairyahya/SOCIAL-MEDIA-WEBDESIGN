@@ -7,157 +7,225 @@ import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+import bcrypt from 'bcryptjs';
 
-// Load environment variables
 dotenv.config();
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// Middleware
-app.use(cors());
+// --- MIDDLEWARE ---
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(bodyParser.json());
-app.use(express.static("Public"));
+app.use(express.static("Public")); 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.use(
     expressSession({
-        secret: process.env.SESSION_SECRET,
+        secret: process.env.SESSION_SECRET || 'travel_social_secret',
         resave: false,
-        saveUninitialized: true,
-        cookie: { maxAge: 3600000 },
+        saveUninitialized: false,
+        cookie: { maxAge: 3600000, secure: false } 
     })
 );
 
-// MongoDB Connection
+// --- MONGODB CONNECTION ---
 const mongoUri = process.env.MONGO_URI;
 const dbName = 'travel_db'; 
 let db;
 
 MongoClient.connect(mongoUri)
     .then((client) => {
-        console.log('✅ Connected to MongoDB Atlas Cluster');
+        console.log('✅ Connected to MongoDB Atlas');
         db = client.db(dbName);
     })
-    .catch((error) => {
-        console.error('❌ MongoDB Atlas Connection Error:', error);
-    });
+    .catch((error) => console.error('❌ Connection Error:', error));
 
-// File upload setup with Multer
+// Image Upload Config
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, './uploads');
-    },
-    filename: (req, file, cb) => {
-        cb(null, `${Date.now()}-${file.originalname}`);
-    },
+    destination: (req, file, cb) => cb(null, './uploads'),
+    filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
 });
 const upload = multer({ storage });
 
-// --- ROUTES ---
+// --- 1. AUTHENTICATION ---
 
-// Welcome Route
-app.get('/M00949001', (req, res) => {
-    res.send('Welcome to my website with Student ID M00949001!');
-});
-
-// User Registration
-app.post('/M00949001/users', async (req, res) => {
+app.post('/users', async (req, res) => {
     const { username, email, password } = req.body;
-    if (!username || !email || !password) {
-        return res.status(400).json({ error: 'Username, password, and email are required' });
-    }
-
     try {
-        const result = await db.collection('users').insertOne({ username, email, password });
-        res.json({
-            registration: true,
-            message: 'User registered successfully',
-            userId: result.insertedId,
+        const hashed = await bcrypt.hash(password, 10);
+        await db.collection('users').insertOne({ 
+            username, email, password: hashed, following: [], followers: [], createdAt: new Date() 
         });
-    } catch (error) {
-        res.status(500).json({ error: `Error during registration: ${error.message}` });
-    }
+        res.json({ registration: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// Login Route
-app.post('/M00949001/login', async (req, res) => {
-    const { username, password } = req.body;
-    if (!username || !password) {
-        return res.status(400).json({ error: 'Username and password are required' });
-    }
-
-    try {
-        const user = await db.collection('users').findOne({ username, password });
-        if (!user) {
-            return res.status(401).json({ error: 'Invalid username or password' });
-        }
-
+app.post('/login', async (req, res) => {
+    const { email, password } = req.body;
+    const user = await db.collection('users').findOne({ email });
+    if (user && await bcrypt.compare(password, user.password)) {
         req.session.isLoggedIn = true;
         req.session.userId = user._id;
-        req.session.email = user.email;
-
-        res.json({ message: 'Login successful', userId: user._id });
-    } catch (error) {
-        res.status(500).json({ error: `Error during login: ${error.message}` });
+        req.session.username = user.username;
+        return res.json({ message: 'Login successful', loggedIn: true });
     }
+    res.status(401).json({ error: 'Invalid credentials' });
 });
 
-// Post Content
-app.post('/M00949001/contents', upload.single('image'), async (req, res) => {
-    const { title, content } = req.body;
-    const image = req.file ? `/uploads/${req.file.filename}` : null;
-
-    if (!req.session.isLoggedIn) {
-        return res.status(401).json({ error: 'You must be logged in to post content' });
-    }
-
-    try {
-        const result = await db.collection('contents').insertOne({ 
-            userId: req.session.userId, 
-            title, 
-            content, 
-            image,
-            createdAt: new Date()
+app.get('/login-check', (req, res) => {
+    if (req.session.isLoggedIn) {
+        res.json({ 
+            loggedIn: true, 
+            username: req.session.username,
+            userId: req.session.userId  // ADD THIS LINE
         });
-        res.json({ message: 'Content posted successfully', contentId: result.insertedId });
-    } catch (error) {
-        res.status(500).json({ error: `Error while posting: ${error.message}` });
+    } else {
+        res.json({ loggedIn: false });
     }
 });
-
-// Search Users
-app.get('/M00949001/users/search', async (req, res) => {
-    const { q } = req.query;
-    if (!q) return res.status(400).json({ error: 'Search query is required' });
-
-    try {
-        const users = await db.collection('users')
-            .find({
-                $or: [
-                    { username: { $regex: q, $options: 'i' } },
-                    { email: { $regex: q, $options: 'i' } },
-                ],
-            }).toArray();
-        res.json(users);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
+app.delete('/login', (req, res) => {
+    req.session.destroy();
+    res.json({ message: "Logged out" });
 });
 
-// Logout
-app.delete('/M00949001/login', (req, res) => {
-    req.session.destroy((error) => {
-        if (error) return res.status(500).json({ error: 'Logout failed' });
-        res.json({ message: 'Logout successful' });
+// --- 2. PROFILE & SETTINGS ---
+
+app.get('/profile/stats', async (req, res) => {
+    if (!req.session.isLoggedIn) return res.status(401).send();
+    const user = await db.collection('users').findOne({ _id: new ObjectId(req.session.userId) });
+    res.json({
+        username: user.username,
+        following: user.following ? user.following.length : 0,
+        followers: user.followers ? user.followers.length : 0
     });
 });
 
-// Start Server
-app.listen(PORT, () => {
-    console.log(`🚀 Server running at http://localhost:${PORT}/M00949001`);
+app.put('/profile/password', async (req, res) => {
+    const { oldPassword, newPassword } = req.body;
+    const user = await db.collection('users').findOne({ _id: new ObjectId(req.session.userId) });
+    if (await bcrypt.compare(oldPassword, user.password)) {
+        const hashed = await bcrypt.hash(newPassword, 10);
+        await db.collection('users').updateOne({ _id: user._id }, { $set: { password: hashed } });
+        return res.json({ success: true });
+    }
+    res.status(401).json({ error: "Wrong original password" });
 });
+
+// --- 3. POSTS & FEEDS ---
+
+app.post('/contents', upload.single('image'), async (req, res) => {
+    const { title, description } = req.body;
+    await db.collection('contents').insertOne({ 
+        userId: req.session.userId, username: req.session.username,
+        title, description, image: `/uploads/${req.file.filename}`, createdAt: new Date() 
+    });
+    res.json({ success: true });
+});
+
+app.get('/feed', async (req, res) => {
+    if (!req.session.isLoggedIn) return res.status(401).json({ error: "Not logged in" });
+    
+    const user = await db.collection('users').findOne({ _id: new ObjectId(req.session.userId) });
+    const posts = await db.collection('contents').find().sort({ createdAt: -1 }).toArray();
+    
+    const following = (user.following || []).map(id => id.toString());
+    
+    // Sort so following content is first
+    const sorted = posts.sort((a, b) => {
+        const aFollowed = following.includes(a.userId.toString());
+        const bFollowed = following.includes(b.userId.toString());
+        return bFollowed - aFollowed;
+    });
+    
+    res.json({ feed: sorted, followingIds: following });
+});
+
+// --- 4. MESSAGING (CRITICAL UPDATES) ---
+
+// --- 4. MESSAGING (FIXED SERVER LOGIC) ---
+
+app.post('/messages', async (req, res) => {
+    try {
+        const { receiverId, text } = req.body;
+        const senderId = req.session.userId;
+
+        if (!senderId) return res.status(401).send("Unauthorized");
+
+        // Convert IDs to ObjectIDs to find the users in DB
+        const sender = await db.collection('users').findOne({ _id: new ObjectId(senderId) });
+        const receiver = await db.collection('users').findOne({ _id: new ObjectId(receiverId) });
+
+        if (!sender || !receiver) return res.status(404).send("User not found");
+
+        const newMessage = {
+            senderId: new ObjectId(senderId),     // Save as ObjectID
+            senderName: sender.username,
+            receiverId: new ObjectId(receiverId), // Save as ObjectID
+            receiverName: receiver.username,
+            text,
+            createdAt: new Date()
+        };
+
+        await db.collection('messages').insertOne(newMessage);
+        res.sendStatus(200);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Error sending message");
+    }
+});
+
+app.get('/inbox', async (req, res) => {
+    const myId = new ObjectId(req.session.userId); // Ensure this is an ObjectID
+    if (!myId) return res.status(401).send("Not logged in");
+
+    const messages = await db.collection('messages').find({
+        $or: [{ senderId: myId }, { receiverId: myId }]
+    }).sort({ createdAt: -1 }).toArray();
+
+    res.json(messages);
+});
+
+app.get('/messages/:otherUserId', async (req, res) => {
+    try {
+        const myId = new ObjectId(req.session.userId);
+        const otherUserId = new ObjectId(req.params.otherUserId);
+
+        const history = await db.collection('messages').find({
+            $or: [
+                { senderId: myId, receiverId: otherUserId },
+                { senderId: otherUserId, receiverId: myId }
+            ]
+        }).sort({ createdAt: 1 }).toArray();
+        
+        res.json(history);
+    } catch (err) {
+        res.status(500).json([]);
+    }
+});
+
+// --- 5. SOCIAL ---
+
+app.post('/follow/:id', async (req, res) => {
+    const target = new ObjectId(req.params.id);
+    const myId = new ObjectId(req.session.userId);
+    
+    await db.collection('users').updateOne({ _id: myId }, { $addToSet: { following: target } });
+    await db.collection('users').updateOne({ _id: target }, { $addToSet: { followers: myId } });
+    res.json({ followed: true });
+});
+
+app.get('/search', async (req, res) => {
+    const results = await db.collection('contents').find({
+        $or: [
+            { title: { $regex: req.query.q, $options: 'i' } },
+            { username: { $regex: req.query.q, $options: 'i' } }
+        ]
+    }).toArray();
+    res.json(results);
+});
+
+app.listen(PORT, () => console.log(`🚀 Server on port ${PORT}`));
