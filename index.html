@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/webp" href="Images/zu.jpg">
+    <title>ZuZu Connect | Travel Social</title>
+    <link rel="stylesheet" href="../CSS/style.css">
+</head>
+
+<body>
+
+    <div class="top-nav-wrapper">
+        <header>
+            <!-- LEFT: Brand & Search together in a row -->
+            <div class="header-left-row">
+                <h1>ZuZu Connect</h1>
+
+                <div class="search-container hidden">
+                    <form class="search-box" onsubmit="handleSearchSubmit(event)">
+                        <input type="text" id="search-query" placeholder="Search destinations...">
+                        <button type="submit" id="search-btn">Search</button>
+                        <button type="button" onclick="clearSearch()" id="back-btn" class="hidden">✕ Back</button>
+                    </form>
+                </div>
+
+                <div id="user-stats" class="hidden"></div>
+            </div>
+
+            <!-- CENTER: Navigation -->
+            <nav id="app-nav" class="tabs hidden">
+                <button onclick="showTab('feed-tab')" data-tab="feed-tab">Home</button>
+                <button onclick="showTab('inbox-tab')" data-tab="inbox-tab">Messages</button>
+                <button onclick="showTab('profile-tab')" data-tab="profile-tab">Profile</button>
+                <button id="fab" class="nav-add-btn hidden" onclick="showTab('add-post-tab')">+</button>
+            </nav>
+
+            <!-- RIGHT: Toggle -->
+            <button id="theme-toggle" onclick="toggleTheme()" title="Toggle theme">🌙</button>
+        </header>
+    </div>
+
+    <main>
+        <section id="auth-section">
+            <div id="login-view">
+                <h2>Login</h2>
+                <form id="login-form">
+                    <input type="email" id="login-email" placeholder="Email" required>
+                    <input type="password" id="login-password" placeholder="Password" required>
+                    <button type="submit">Login</button>
+                </form>
+                <p>New here? <a href="#" id="show-register">Create Account</a></p>
+            </div>
+
+            <div id="register-view" class="hidden">
+                <h2>Register</h2>
+                <form id="register-form">
+                    <input type="text" id="register-username" placeholder="Full Name" required>
+                    <input type="email" id="register-email" placeholder="Email" required>
+                    <input type="password" id="register-password" placeholder="Password" required>
+                    <button type="submit">Join Community</button>
+                </form>
+                <p>Have an account? <a href="#" id="show-login">Login</a></p>
+            </div>
+        </section>
+
+        <section id="app-section" class="hidden">
+
+            <!-- FEED TAB -->
+            <div id="feed-tab" class="tab-content">
+                <div id="post-list"></div>
+            </div>
+
+            <!-- ADD POST TAB -->
+            <div id="add-post-tab" class="tab-content hidden">
+                <h3>Share a New Memory</h3>
+                <form id="new-post-form">
+                    <input type="text" name="title" placeholder="Location Name" required>
+                    <textarea name="description" placeholder="Share your travel story.." required></textarea>
+                    <input type="file" name="images" accept="image/*" multiple required>
+                    <small style="color:var(--text-muted); text-align:center;">Hold Ctrl/Cmd to select multiple
+                        photos</small>
+                    <button type="submit">Post to Feed</button>
+                </form>
+            </div>
+
+            <!-- MESSAGES TAB -->
+            <div id="inbox-tab" class="tab-content hidden">
+                <div id="messenger-container">
+                    <div id="inbox-list"></div>
+                    <div id="chat-window" class="hidden">
+                        <h3 id="chat-with-name">Select a Chat</h3>
+                        <div id="message-history"></div>
+                        <div class="chat-input-area">
+                            <input type="text" id="reply-text" placeholder="Write message...">
+                            <button id="send-reply-btn">Send</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PROFILE TAB (NEW) -->
+            <div id="profile-tab" class="tab-content hidden">
+
+                <!-- Profile Header Card -->
+                <div class="profile-card">
+                    <div class="profile-avatar" id="profile-avatar-initials"></div>
+                    <div class="profile-info">
+                        <h2 id="profile-display-name"></h2>
+                        <div class="profile-stats-row">
+                            <button class="stat-btn" onclick="openModal('followers-modal')">
+                                <span id="profile-followers-count">0</span>
+                                <small>Followers</small>
+                            </button>
+                            <button class="stat-btn" onclick="openModal('following-modal')">
+                                <span id="profile-following-count">0</span>
+                                <small>Following</small>
+                            </button>
+                            <button class="stat-btn" onclick="scrollToMyPosts()">
+                                <span id="profile-posts-count">0</span>
+                                <small>Posts</small>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Edit Name -->
+                <div class="profile-section-card">
+                    <h4>✏️ Edit Display Name</h4>
+                    <form id="username-form">
+                        <input type="text" id="new-username" placeholder="New display name" required>
+                        <button type="submit">Update Name</button>
+                    </form>
+                </div>
+
+                <!-- Change Password -->
+                <div class="profile-section-card">
+                    <h4>🔒 Change Password</h4>
+                    <form id="password-form">
+                        <input type="password" id="old-pass" placeholder="Current Password" required>
+                        <input type="password" id="new-pass" placeholder="New Password" required>
+                        <button type="submit">Update Password</button>
+                    </form>
+                </div>
+
+                <!-- My Posts -->
+                <div class="profile-section-card">
+                    <h4>📸 My Posts</h4>
+                    <div id="my-post-list"></div>
+                </div>
+
+                <!-- Logout -->
+                <div class="profile-section-card" style="text-align:center;">
+                    <button id="logout" class="logout-btn">🚪 Logout</button>
+                </div>
+
+            </div>
+
+        </section>
+    </main>
+
+    <!-- FOLLOWERS MODAL -->
+    <div id="followers-modal" class="modal-overlay hidden" onclick="closeModalOutside(event, 'followers-modal')">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>Followers</h3>
+                <button onclick="closeModal('followers-modal')" class="modal-close">✕</button>
+            </div>
+            <div id="followers-list" class="user-list"></div>
+        </div>
+    </div>
+
+    <!-- FOLLOWING MODAL -->
+    <div id="following-modal" class="modal-overlay hidden" onclick="closeModalOutside(event, 'following-modal')">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>Following</h3>
+                <button onclick="closeModal('following-modal')" class="modal-close">✕</button>
+            </div>
+            <div id="following-list" class="user-list"></div>
+        </div>
+    </div>
+
+    <!-- POST FULL VIEW MODAL -->
+    <div id="post-view-modal" class="hidden" onclick="closePostModal(event)">
+        <div class="post-view-wrapper">
+            <div class="post-view-box" id="post-view-box">
+                <div id="post-view-media"></div>
+                <div class="post-view-body">
+                    <p id="post-view-username"
+                        style="margin:0 0 6px 0; font-weight:700; color:var(--primary-blue); display:none;"></p>
+                    <h2 id="post-view-title"></h2>
+                    <p id="post-view-desc"></p>
+                </div>
+            </div>
+            <button class="post-view-close"
+                onclick="document.getElementById('post-view-modal').classList.add('hidden'); document.body.style.overflow='';">✕</button>
+        </div>
+    </div>
+
+    <script src="../JavaScript/sm.js"></script>
+</body>
+
+</html>
