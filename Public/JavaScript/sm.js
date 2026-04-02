@@ -120,10 +120,17 @@ function clearSearch() {
 }
 
 // Allow Enter key to trigger search
-document.getElementById('search-query').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') searchContent();
-});
+function handleSearchSubmit(e) {
+    e.preventDefault();
+    searchContent();
+}
 
+document.getElementById('search-query').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        searchContent();
+    }
+});
 function getPostImages(post) {
     // Support both new multi-image posts and old single-image posts
     if (post.images && post.images.length > 0) return post.images;
@@ -517,10 +524,6 @@ document.getElementById('send-reply-btn').onclick = async () => {
     }
 };
 
-// Allow Enter key to send messages
-document.getElementById('reply-text').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') document.getElementById('send-reply-btn').click();
-});
 
 // --- 9. LIKES ---
 async function toggleLike(postId, btn) {

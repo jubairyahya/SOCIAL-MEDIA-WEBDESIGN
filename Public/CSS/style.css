@@ -106,8 +106,7 @@ header {
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 20px;
-    /* Space between Logo and Search */
+    gap: 10px;
     flex: 1;
 }
 
@@ -126,9 +125,12 @@ header h1 {
 /* Stats (if shown) sitting quietly next to search */
 #user-stats {
     font-size: 0.75rem;
-    margin: 0;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 2px 0 8px;
     padding: 0;
     white-space: nowrap;
+    display: none !important;
 }
 
 /* RIGHT TOGGLE */
@@ -151,12 +153,7 @@ header h1 {
     box-shadow: var(--shadow-out);
 }
 
-#user-stats {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    text-align: center;
-    padding: 2px 0 8px;
-}
+
 
 /* ============================================
    NAV TABS
@@ -455,17 +452,19 @@ button[type="submit"]:active {
    ============================================ */
 .search-container {
     width: auto;
-    margin: 5px 0 0 0;
+    margin: 0;
 }
 
 .search-box {
     display: flex;
+    flex-direction: row;  
     align-items: center;
     gap: 5px;
+    flex-wrap: nowrap;
 }
 
 #search-query {
-    width: 180px;
+    width: 160px;
     padding: 8px 14px;
     font-size: 0.8rem;
 }
