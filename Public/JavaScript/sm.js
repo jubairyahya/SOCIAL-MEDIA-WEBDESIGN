@@ -1,37 +1,30 @@
 const apiBase = "http://localhost:8080";
 let currentChatUserId = null;
 let myUserId = null;
+let myFollowingIds = []; // Tracks who the logged-in user follows
+let isSearchActive = false; // Tracks if search results are being shown
 
 // --- 1. INITIALIZATION & AUTH CHECK ---
-// Update your Init function to show the Nav and FAB
 async function init() {
     try {
         const res = await fetch(`${apiBase}/login-check`);
         const data = await res.json();
         
         if (data.loggedIn) {
-            // 1. Store the User ID (Crucial for messaging)
             myUserId = data.userId;
 
-            // 2. Hide Login/Register, Show App
             document.getElementById('auth-section').classList.add('hidden');
             document.getElementById('app-section').classList.remove('hidden');
-            
-            // 3. Show Navigation & Floating Action Button
             document.getElementById('app-nav').classList.remove('hidden');
             document.getElementById('fab').classList.remove('hidden'); 
             
-            // 4. Ensure the Search bar (in header) is visible
-            // Note: If your search-container has the 'hidden' class in HTML, remove it here
             const searchBar = document.querySelector('.search-container');
             if (searchBar) searchBar.classList.remove('hidden');
 
-            // 5. Load Data
             showTab('feed-tab'); 
             loadFeed(); 
             loadProfileStats();
         } else {
-            // Optional: Ensure everything is hidden if NOT logged in
             document.getElementById('auth-section').classList.remove('hidden');
             document.getElementById('app-nav').classList.add('hidden');
             document.getElementById('fab').classList.add('hidden');
@@ -47,8 +40,13 @@ function showTab(tabId) {
     const target = document.getElementById(tabId);
     if (target) target.classList.remove('hidden');
     
-    // Auto-load inbox if that tab is selected
-    if(tabId === 'inbox-tab') loadInbox();
+    // Update active tab button styling
+    document.querySelectorAll('.tabs button[data-tab]').forEach(btn => {
+        btn.classList.toggle('active-tab', btn.getAttribute('data-tab') === tabId);
+    });
+
+    if (tabId === 'inbox-tab') loadInbox();
+    if (tabId === 'profile-tab') loadProfileTab();
 }
 
 // --- 3. LOGIN & REGISTER ---
@@ -95,37 +93,81 @@ document.getElementById('register-form').onsubmit = async (e) => {
 async function loadFeed() {
     const res = await fetch(`${apiBase}/feed`);
     const data = await res.json();
+    myFollowingIds = data.followingIds || []; // Store globally for follow state
     renderPosts(data.feed);
 }
 
-// FIXED SEARCH FUNCTION
+// Search with back button
 async function searchContent() {
-    const q = document.getElementById('search-query').value;
-    if(!q) return loadFeed();
+    const q = document.getElementById('search-query').value.trim();
+    if (!q) return clearSearch();
     
-    const res = await fetch(`${apiBase}/search?q=${q}`);
+    const res = await fetch(`${apiBase}/search?q=${encodeURIComponent(q)}`);
     const posts = await res.json();
     renderPosts(posts);
+
+    // Show back button
+    isSearchActive = true;
+    document.getElementById('back-btn').classList.remove('hidden');
 }
+
+// Clear search and return to full feed
+function clearSearch() {
+    document.getElementById('search-query').value = '';
+    isSearchActive = false;
+    document.getElementById('back-btn').classList.add('hidden');
+    loadFeed();
+}
+
+// Allow Enter key to trigger search
+document.getElementById('search-query').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') searchContent();
+});
 
 function renderPosts(posts) {
     const list = document.getElementById('post-list');
+    showTab('feed-tab');
+
+    if (!posts || posts.length === 0) {
+        list.innerHTML = '<p style="text-align:center; color:var(--text-muted); padding:30px;">No posts found.</p>';
+        return;
+    }
+
     list.innerHTML = posts.map(post => {
-        const isNotMine = post.userId !== myUserId; // Fix: Check if post belongs to someone else
-        
+        const isMyPost = post.userId === myUserId || post.userId?.toString() === myUserId?.toString();
+        const isFollowing = myFollowingIds.includes(post.userId?.toString());
+        const likeCount = post.likeCount || 0;
+        const likedByMe = post.likedByMe || false;
+
+        let actionButtons = '';
+        if (isMyPost) {
+            actionButtons = `<span class="my-post-tag">Your Post ✓</span>`;
+        } else if (isFollowing) {
+            actionButtons = `
+                <button class="btn-following" onclick="follow('${post.userId}')">✓ Following</button>
+                <button class="btn-insta-grey" onclick="openDirectChat('${post.userId}', '${post.username}')">Message</button>
+            `;
+        } else {
+            actionButtons = `
+                <button class="btn-insta-blue" onclick="follow('${post.userId}')">Follow</button>
+                <button class="btn-insta-grey" onclick="openDirectChat('${post.userId}', '${post.username}')">Message</button>
+            `;
+        }
+
         return `
-        <div class="post">
-            <div class="post-header"><strong>@${post.username}</strong></div>
-            <img src="${post.image}" alt="Travel Image">
+        <div class="post" id="feed-post-${post._id}">
+            <div class="post-header"><strong>${post.username}</strong></div>
+            <img src="${post.image}" alt="Travel Image" loading="lazy">
             <div class="post-body">
                 <h3>${post.title}</h3>
                 <p>${post.description}</p>
             </div>
             <div class="post-actions">
-                ${isNotMine ? `
-                    <button class="btn-insta-blue" onclick="follow('${post.userId}')">Follow</button>
-                    <button class="btn-insta-grey" onclick="openDirectChat('${post.userId}', '${post.username}')">Message</button>
-                ` : `<span class="my-post-tag">Your Post</span>`}
+                <button class="btn-like ${likedByMe ? 'liked' : ''}" onclick="toggleLike('${post._id}', this)">
+                    <span class="heart">${likedByMe ? '❤️' : '🤍'}</span>
+                    <span class="like-count">${likeCount}</span>
+                </button>
+                ${actionButtons}
             </div>
         </div>`;
     }).join('');
@@ -135,17 +177,199 @@ document.getElementById('new-post-form').onsubmit = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const res = await fetch(`${apiBase}/contents`, { method: 'POST', body: formData });
-    if (res.ok) { e.target.reset(); loadFeed(); }
+    if (res.ok) { 
+        e.target.reset(); 
+        showTab('feed-tab');
+        loadFeed(); 
+    }
 };
 
-// --- 5. SOCIAL & MESSAGING ---
+// --- 5. SOCIAL & FOLLOW ---
 async function follow(id) {
     await fetch(`${apiBase}/follow/${id}`, { method: 'POST' });
-    loadFeed(); loadProfileStats();
+    // Update local state immediately so button switches without full reload
+    const idStr = id.toString();
+    if (!myFollowingIds.includes(idStr)) {
+        myFollowingIds.push(idStr);
+    }
+    // Re-render the current posts with updated follow state
+    if (isSearchActive) {
+        searchContent();
+    } else {
+        loadFeed();
+    }
+    loadProfileStats();
 }
 
-// --- UPDATED MESSENGER LOGIC ---
+// --- 6. PROFILE TAB ---
+async function loadProfileTab() {
+    await loadProfileStats();
+    await loadMyPosts();
+}
 
+async function loadProfileStats() {
+    const res = await fetch(`${apiBase}/profile/stats`);
+    if (!res.ok) return;
+    const data = await res.json();
+
+    // Update header stat
+    document.getElementById('user-stats').innerHTML = `<b>${data.username}</b> | Followers: ${data.followers}`;
+    document.getElementById('user-stats').classList.remove('hidden');
+
+    // Update profile tab
+    document.getElementById('profile-display-name').textContent = data.username;
+    document.getElementById('profile-followers-count').textContent = data.followers;
+    document.getElementById('profile-following-count').textContent = data.following;
+
+    // Avatar initials
+    const initials = data.username.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+    const avatar = document.getElementById('profile-avatar-initials');
+    if (avatar) avatar.textContent = initials;
+
+    // Pre-fill the rename input
+    const nameInput = document.getElementById('new-username');
+    if (nameInput) nameInput.value = data.username;
+}
+
+async function loadMyPosts() {
+    const res = await fetch(`${apiBase}/profile/posts`);
+    if (!res.ok) return;
+    const posts = await res.json();
+
+    const container = document.getElementById('my-post-list');
+    document.getElementById('profile-posts-count').textContent = posts.length;
+
+    if (posts.length === 0) {
+        container.innerHTML = '<p class="no-posts-msg">You haven\'t posted anything yet. Share your first memory! ✈️</p>';
+        return;
+    }
+
+    container.innerHTML = posts.map(post => `
+        <div class="my-post-item" id="post-item-${post._id}">
+            <img class="my-post-thumb" src="${post.image}" alt="${post.title}"
+                 style="cursor:pointer;"
+                 onclick="openPostModal('${post.image}', '${post.title.replace(/'/g, "\'")}', '${post.description.replace(/'/g, "\'")}')">
+            <div class="my-post-info" style="cursor:pointer;"
+                 onclick="openPostModal('${post.image}', '${post.title.replace(/'/g, "\'")}', '${post.description.replace(/'/g, "\'")}')">
+                <strong>${post.title}</strong>
+                <p>${post.description}</p>
+            </div>
+            <button class="btn-delete-post" onclick="deletePost('${post._id}')">🗑 Delete</button>
+        </div>
+    `).join('');
+}
+
+async function deletePost(postId) {
+    if (!confirm("Delete this post? This can't be undone.")) return;
+    const res = await fetch(`${apiBase}/contents/${postId}`, { method: 'DELETE' });
+    if (res.ok) {
+        // Remove from DOM instantly
+        const el = document.getElementById(`post-item-${postId}`);
+        if (el) el.remove();
+        // Update post count
+        const countEl = document.getElementById('profile-posts-count');
+        if (countEl) countEl.textContent = parseInt(countEl.textContent) - 1;
+        // Refresh feed too
+        loadFeed();
+    } else {
+        alert("Couldn't delete this post.");
+    }
+}
+
+// Update display name
+document.getElementById('username-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const newName = document.getElementById('new-username').value.trim();
+    const res = await fetch(`${apiBase}/profile/username`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: newName })
+    });
+    if (res.ok) {
+        alert(`Name updated to "${newName}" ✓`);
+        loadProfileStats();
+        loadFeed(); // Refresh feed so posts show new name
+    } else {
+        alert("Couldn't update name — try again.");
+    }
+};
+
+// Change password (moved to profile tab)
+document.getElementById('password-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const res = await fetch(`${apiBase}/profile/password`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            oldPassword: document.getElementById('old-pass').value,
+            newPassword: document.getElementById('new-pass').value
+        })
+    });
+    if (res.ok) {
+        alert("Password updated ✓");
+        e.target.reset();
+    } else {
+        alert("Wrong current password — try again.");
+    }
+};
+
+// Logout (moved to profile tab)
+document.getElementById('logout').onclick = async () => { 
+    await fetch(`${apiBase}/login`, { method: 'DELETE' }); 
+    location.reload(); 
+};
+
+// --- 7. FOLLOWERS / FOLLOWING MODALS ---
+async function openModal(modalId) {
+    document.getElementById(modalId).classList.remove('hidden');
+
+    if (modalId === 'followers-modal') {
+        const res = await fetch(`${apiBase}/profile/followers`);
+        const users = await res.json();
+        renderUserList('followers-list', users, 'No followers yet.');
+    } else if (modalId === 'following-modal') {
+        const res = await fetch(`${apiBase}/profile/following`);
+        const users = await res.json();
+        renderUserList('following-list', users, 'Not following anyone yet.');
+    }
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.add('hidden');
+}
+
+function closeModalOutside(event, modalId) {
+    if (event.target === document.getElementById(modalId)) {
+        closeModal(modalId);
+    }
+}
+
+function renderUserList(containerId, users, emptyMsg) {
+    const container = document.getElementById(containerId);
+    if (!users || users.length === 0) {
+        container.innerHTML = `<p class="empty-modal-msg">${emptyMsg}</p>`;
+        return;
+    }
+    container.innerHTML = users.map(u => {
+        const initials = u.username.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+        return `
+            <div class="user-list-item">
+                <div class="user-list-avatar">${initials}</div>
+                <strong>${u.username}</strong>
+            </div>
+        `;
+    }).join('');
+}
+
+// Close modals with Escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closeModal('followers-modal');
+        closeModal('following-modal');
+    }
+});
+
+// --- 8. MESSAGING ---
 async function loadInbox() {
     const res = await fetch(`${apiBase}/inbox`);
     const msgs = await res.json();
@@ -154,24 +378,13 @@ async function loadInbox() {
     const partners = new Map();
 
     msgs.forEach(m => {
-        // Convert IDs to strings to ensure comparison works
         const sId = m.senderId.toString();
         const rId = m.receiverId.toString();
         const me = myUserId.toString();
 
         const isISentIt = sId === me;
         const partnerId = isISentIt ? rId : sId;
-        
-        let partnerName = "User";
-        if (!isISentIt) {
-            partnerName = m.senderName || "New Contact"; 
-        } else {
-            partnerName = m.receiverName || "Chat Partner";
-        }
-
-        if (partnerName.includes("Contact") || partnerName.includes("Partner")) {
-            if (partnerId) partnerName = "User_" + partnerId.substring(0, 4);
-        }
+        const partnerName = isISentIt ? (m.receiverName || 'User') : (m.senderName || 'User');
 
         if (partnerId && partnerId !== me) {
             partners.set(partnerId, partnerName);
@@ -183,7 +396,7 @@ async function loadInbox() {
             <strong>${name}</strong>
             <p style="font-size:0.75rem; margin:0; color:var(--text-muted);">View conversation</p>
         </div>
-    `).join('') || "<p style='padding:20px;'>No messages found.</p>";
+    `).join('') || "<p style='padding:20px; color:var(--text-muted);'>No messages yet.</p>";
 }
 
 async function openDirectChat(id, name) {
@@ -201,7 +414,6 @@ async function openDirectChat(id, name) {
     const history = await res.json();
     
     historyDiv.innerHTML = history.map(m => {
-        // Force string comparison for safety
         const side = (m.senderId.toString() === myUserId.toString()) ? 'sent' : 'received';
         return `<div class="msg-bubble ${side}">${m.text}</div>`;
     }).join('');
@@ -209,45 +421,73 @@ async function openDirectChat(id, name) {
     historyDiv.scrollTop = historyDiv.scrollHeight;
 }
 
-// --- IMPORTANT: Update the Send Button ---
 document.getElementById('send-reply-btn').onclick = async () => {
     const input = document.getElementById('reply-text');
     const text = input.value.trim();
-    
-    // Safety check: ensure we have a partner and text
-    if(!text || !currentChatUserId) return;
+    if (!text || !currentChatUserId) return;
 
     const res = await fetch(`${apiBase}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-            receiverId: currentChatUserId, 
-            text: text 
-        })
+        body: JSON.stringify({ receiverId: currentChatUserId, text })
     });
 
-    if(res.ok) {
+    if (res.ok) {
         input.value = "";
-        // Re-fetch chat history immediately
         const currentName = document.getElementById('chat-with-name').innerText;
         openDirectChat(currentChatUserId, currentName);
     }
 };
 
-// --- 6. SETTINGS ---
-async function loadProfileStats() {
-    const res = await fetch(`${apiBase}/profile/stats`);
-    if(res.ok) {
-        const data = await res.json();
-        document.getElementById('user-stats').innerHTML = `<b>${data.username}</b> | Followers: ${data.followers}`;
-        document.getElementById('user-stats').classList.remove('hidden');
+// Allow Enter key to send messages
+document.getElementById('reply-text').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('send-reply-btn').click();
+});
+
+// --- 9. LIKES ---
+async function toggleLike(postId, btn) {
+    const res = await fetch(`${apiBase}/contents/${postId}/like`, { method: 'POST' });
+    if (!res.ok) return;
+    const data = await res.json();
+    
+    const heartEl = btn.querySelector('.heart');
+    const countEl = btn.querySelector('.like-count');
+    
+    countEl.textContent = data.likeCount;
+    heartEl.textContent = data.likedByMe ? '❤️' : '🤍';
+    btn.classList.toggle('liked', data.likedByMe);
+}
+
+// --- 10. POST FULL VIEW MODAL (from profile) ---
+function openPostModal(imgSrc, title, desc) {
+    document.getElementById('post-view-img').src = imgSrc;
+    document.getElementById('post-view-title').textContent = title;
+    document.getElementById('post-view-desc').textContent = desc;
+    document.getElementById('post-view-modal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closePostModal(event) {
+    // Only close if clicking the backdrop itself
+    if (event.target === document.getElementById('post-view-modal')) {
+        document.getElementById('post-view-modal').classList.add('hidden');
+        document.body.style.overflow = '';
     }
 }
 
-document.getElementById('logout').onclick = async () => { 
-    await fetch(`${apiBase}/login`, { method: 'DELETE' }); 
-    location.reload(); 
-};
+// Close post modal with Escape
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        document.getElementById('post-view-modal').classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+});
 
-// BOOT THE APP
+// --- 11. SCROLL TO MY POSTS in profile ---
+function scrollToMyPosts() {
+    const el = document.getElementById('my-post-list');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// --- BOOT ---
 init();

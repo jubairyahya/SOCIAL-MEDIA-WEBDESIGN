@@ -1,12 +1,13 @@
 /* --- ZUZU CONNECT: HIGH TECH 3D LIGHT THEME --- */
 :root {
-    --bg-light: #e0e5ec; /* Not pure white, essential for neumorphic 3D */
+    --bg-light: #e0e5ec;
     --primary-blue: #0095f6;
     --primary-hover: #1877f2;
     --text-main: #2c3e50;
     --text-muted: #7f8c8d;
+    --danger: #e74c3c;
+    --danger-hover: #c0392b;
     
-    /* 3D Soft Shadow Variables */
     --shadow-out: 9px 9px 16px rgba(163, 177, 198, 0.6), 
                   -9px -9px 16px rgba(255, 255, 255, 0.5);
     --shadow-in: inset 6px 6px 10px rgba(163, 177, 198, 0.5), 
@@ -27,7 +28,7 @@ body {
     min-height: 100vh;
 }
 
-/* --- CLEAN HEADER --- */
+/* --- HEADER --- */
 header {
     width: 100%;
     background: var(--bg-light);
@@ -53,17 +54,16 @@ header h1 {
     margin-top: 5px;
 }
 
-/* --- VERTICAL LAYOUT CONTAINER --- */
+/* --- LAYOUT --- */
 main {
     width: 90%;
     max-width: 600px; 
-    margin: 40px auto;
+    margin: 160px auto 40px;
     display: flex;
     flex-direction: column;
     gap: 30px;
 }
 
-/* --- THE 3D PANELS --- */
 #auth-section, .tab-content {
     background: var(--bg-light);
     padding: 40px;
@@ -77,7 +77,7 @@ form {
     gap: 15px;
 }
 
-/* --- 3D INPUT FIELDS --- */
+/* --- INPUTS --- */
 input, textarea {
     width: 100%;
     padding: 15px;
@@ -124,7 +124,15 @@ button[type="submit"]:active {
     box-shadow: inset 2px 2px 4px rgba(0,0,0,0.2);
 }
 
-/* --- NAVIGATION TABS --- */
+/* --- NAV TABS --- */
+.top-nav-wrapper {
+    position: sticky;
+    top: 0;
+    width: 100%;
+    z-index: 1000;
+    background: var(--bg-light);
+}
+
 .tabs {
     display: flex;
     align-items: center;
@@ -132,6 +140,7 @@ button[type="submit"]:active {
     gap: 12px;
     padding: 10px 0;
 }
+
 .tabs button {
     background: var(--bg-light);
     color: var(--text-muted);
@@ -149,9 +158,7 @@ button[type="submit"]:active {
     color: var(--primary-blue);
 }
 
-#logout { color: #e74c3c; }
-
-/* --- THE 3D POST CARDS --- */
+/* --- POST CARDS --- */
 .post {
     background: var(--bg-light);
     border-radius: 20px;
@@ -162,12 +169,13 @@ button[type="submit"]:active {
 
 .post img {
     width: 100%;
-    height: 350px;
+    height: 480px;
     object-fit: cover;
     display: block;
 }
 
 .post-body { padding: 20px; }
+
 .post-actions {
     padding: 15px 20px;
     display: flex;
@@ -175,9 +183,9 @@ button[type="submit"]:active {
     justify-content: flex-start;
     border-top: 1px solid rgba(163, 177, 198, 0.2);
 }
-/* This adds space around the @username in the feed */
+
 .post h4, .post .post-header {
-    padding: 15px 20px 5px 20px; /* Top, Right, Bottom, Left */
+    padding: 15px 20px 5px 20px;
     margin: 0;
     font-weight: 700;
     color: var(--primary-blue);
@@ -191,6 +199,25 @@ button[type="submit"]:active {
     font-weight: 600;
     border: none;
     cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-insta-blue:hover {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+}
+
+/* Following state button */
+.btn-following {
+    background: var(--bg-light);
+    color: var(--text-muted);
+    border-radius: 20px;
+    padding: 8px 16px;
+    font-weight: 600;
+    border: 1.5px solid rgba(163, 177, 198, 0.6);
+    cursor: pointer;
+    box-shadow: var(--shadow-out);
+    transition: all 0.2s ease;
 }
 
 .btn-insta-grey {
@@ -203,18 +230,103 @@ button[type="submit"]:active {
     cursor: pointer;
 }
 
-/* --- MESSAGING & CHAT --- */
-.top-nav-wrapper {
-    position: sticky;
-    top: 0;
-    width: 100%;
-    z-index: 1000;
-    background: var(--bg-light);
+.my-post-tag {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-style: italic;
+    align-self: center;
 }
 
+/* --- SEARCH --- */
+.search-container {
+    width: 90%;
+    max-width: 500px;
+    margin: 10px auto 0;
+    padding-bottom: 10px;
+}
+
+.search-box {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+#search-query {
+    flex: 1;
+    max-width: 260px;
+    padding: 12px 20px;
+    border-radius: 25px;
+    border: none;
+    box-shadow: var(--shadow-in);
+}
+
+#search-btn {
+    background-color: var(--primary-blue);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 25px;
+    border: none;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: var(--shadow-btn-hover);
+    margin: 0;
+    transition: 0.3s;
+}
+
+#search-btn:hover {
+    background-color: var(--primary-hover);
+    transform: translateY(-2px);
+}
+
+/* Back button in search */
+#back-btn {
+    background: var(--bg-light);
+    color: var(--text-muted);
+    padding: 10px 16px;
+    border-radius: 25px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: var(--shadow-out);
+    transition: 0.2s;
+    white-space: nowrap;
+}
+
+#back-btn:hover {
+    color: var(--danger);
+    transform: translateY(-1px);
+}
+
+/* --- FAB (+) BUTTON --- */
+#fab {
+    background-color: var(--primary-blue);
+    color: white;
+    border: none;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 10px;
+    box-shadow: var(--shadow-btn-hover);
+    transition: all 0.3s ease;
+}
+
+#fab:hover {
+    background-color: var(--primary-hover);
+    transform: scale(1.1);
+}
+
+/* --- MESSAGING --- */
 #messenger-container {
     display: flex;
-    height: 65vh; /* Adjusted for better fit */
+    height: 65vh;
     background: var(--bg-light);
     border-radius: 20px;
     box-shadow: var(--shadow-out);
@@ -228,12 +340,11 @@ button[type="submit"]:active {
     background: rgba(255, 255, 255, 0.1);
 }
 
-/* Style each person in your message list */
 #inbox-list > div, #inbox-list button {
-    padding: 15px 20px; /* This pushes the name away from the left edge */
+    padding: 15px 20px;
     border-bottom: 1px solid rgba(0,0,0,0.05);
     width: 100%;
-    text-align: left; /* Keeps names aligned to the left */
+    text-align: left;
     display: block;
     background: transparent;
     border-left: none;
@@ -243,7 +354,7 @@ button[type="submit"]:active {
 }
 
 #inbox-list div:hover {
-    background: rgba(0, 149, 246, 0.05); /* Light blue highlight on hover */
+    background: rgba(0, 149, 246, 0.05);
 }
 
 #chat-window {
@@ -284,90 +395,408 @@ button[type="submit"]:active {
     border-bottom-left-radius: 4px;
     box-shadow: var(--shadow-out);
 }
-.search-container {
-    width: 90%;
-    max-width: 500px;
-    margin: 10px auto 0;
-    padding-bottom: 10px;
-}
 
-/* Container for input + button */
-.search-box {
+/* --- PROFILE TAB --- */
+
+/* Big profile header card */
+.profile-card {
     display: flex;
-    justify-content: center;
     align-items: center;
-    gap: 10px; /* Space between input and button */
-    margin-top: 10px;
+    gap: 20px;
+    background: var(--bg-light);
+    border-radius: 20px;
+    padding: 25px 30px;
+    box-shadow: var(--shadow-out);
+    margin-bottom: 20px;
 }
 
-/* Style the Search Input */
-#search-query {
-    flex: 1;
-    max-width: 300px;
-    padding: 12px 20px;
-    border-radius: 25px;
-    border: none;
-    box-shadow: var(--shadow-in); /* Neumorphic inner shadow */
-}
-
-.search-box input {
-    flex: 1; /* Takes up remaining space */
-    padding: 12px 20px;
-    border-radius: 25px;
-    font-size: 0.9rem;
-    box-shadow: var(--shadow-in); /* Keeps the 3D look */
-}
-
-/* Style the Search Button */
-#search-btn {
-    background-color: var(--primary-blue);
+.profile-avatar {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary-blue), #6c5ce7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    font-weight: 800;
     color: white;
-    padding: 10px 20px;
-    border-radius: 25px;
+    flex-shrink: 0;
+    box-shadow: var(--shadow-out);
+    letter-spacing: -1px;
+}
+
+.profile-info {
+    flex: 1;
+}
+
+.profile-info h2 {
+    margin: 0 0 12px 0;
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--text-main);
+}
+
+.profile-stats-row {
+    display: flex;
+    gap: 10px;
+}
+
+.stat-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 10px 18px;
+    border-radius: 15px;
     border: none;
-    font-weight: bold;
+    background: var(--bg-light);
+    cursor: pointer;
+    box-shadow: var(--shadow-out);
+    transition: all 0.2s;
+    font-weight: 700;
+    color: var(--text-main);
+    font-size: 1rem;
+}
+
+.stat-btn:hover {
+    box-shadow: var(--shadow-in);
+    color: var(--primary-blue);
+}
+
+.stat-btn small {
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Sub-sections inside the profile tab */
+.profile-section-card {
+    background: var(--bg-light);
+    border-radius: 20px;
+    padding: 25px 30px;
+    box-shadow: var(--shadow-out);
+    margin-bottom: 20px;
+}
+
+.profile-section-card h4 {
+    margin: 0 0 18px 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+/* Logout button */
+.logout-btn {
+    background: var(--danger);
+    color: white;
+    border: none;
+    border-radius: 25px;
+    padding: 12px 30px;
+    font-size: 1rem;
+    font-weight: 700;
     cursor: pointer;
     box-shadow: var(--shadow-btn-hover);
-    margin: 0; /* Remove default margins */
-    transition: 0.3s;
+    transition: all 0.2s ease;
 }
 
-#search-btn:hover {
-    background-color: var(--primary-hover);
+.logout-btn:hover {
+    background: var(--danger-hover);
     transform: translateY(-2px);
 }
 
-/* Styling for the (+) button when it's inside the Nav bar */
-#fab {
-    background-color: var(--primary-blue);
-    color: white;
+/* My posts in profile */
+.my-post-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(163, 177, 198, 0.3);
+}
+
+.my-post-item:last-child {
+    border-bottom: none;
+}
+
+.my-post-thumb {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    object-fit: cover;
+    flex-shrink: 0;
+    box-shadow: var(--shadow-out);
+}
+
+.my-post-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.my-post-info strong {
+    display: block;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.my-post-info p {
+    margin: 4px 0 0;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.btn-delete-post {
+    background: var(--bg-light);
+    color: var(--danger);
     border: none;
-    width: 38px;
-    height: 38px;
-    border-radius: 50%; /* Keeps it a circle */
-    font-size: 24px;
-    font-weight: bold;
+    border-radius: 12px;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
     cursor: pointer;
+    box-shadow: var(--shadow-out);
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.btn-delete-post:hover {
+    background: var(--danger);
+    color: white;
+    box-shadow: 4px 4px 10px rgba(231, 76, 60, 0.3);
+    transform: translateY(-1px);
+}
+
+.no-posts-msg {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 20px 0;
+    font-size: 0.9rem;
+}
+
+/* --- MODALS (Followers / Following) --- */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(44, 62, 80, 0.35);
+    backdrop-filter: blur(4px);
+    z-index: 9000;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-left: 10px; /* Separates it slightly from 'Settings' */
+}
+
+.modal-box {
+    background: var(--bg-light);
+    border-radius: 24px;
+    box-shadow: var(--shadow-out);
+    width: 90%;
+    max-width: 380px;
+    max-height: 70vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: modalIn 0.2s ease;
+}
+
+@keyframes modalIn {
+    from { transform: scale(0.92); opacity: 0; }
+    to   { transform: scale(1);    opacity: 1; }
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px 15px;
+    border-bottom: 1px solid rgba(163, 177, 198, 0.3);
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.modal-close {
+    background: var(--bg-light);
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    font-size: 1rem;
+    cursor: pointer;
+    box-shadow: var(--shadow-out);
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.2s;
+}
+
+.modal-close:hover {
+    color: var(--danger);
+    box-shadow: var(--shadow-in);
+}
+
+.user-list {
+    overflow-y: auto;
+    padding: 10px 0;
+}
+
+.user-list-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 24px;
+    border-bottom: 1px solid rgba(163, 177, 198, 0.2);
+    transition: background 0.2s;
+}
+
+.user-list-item:last-child { border-bottom: none; }
+
+.user-list-item:hover {
+    background: rgba(0, 149, 246, 0.04);
+}
+
+.user-list-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary-blue), #6c5ce7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+}
+
+.user-list-item strong {
+    font-size: 0.95rem;
+    color: var(--text-main);
+}
+
+.empty-modal-msg {
+    text-align: center;
+    padding: 30px;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+/* --- LIKE BUTTON --- */
+.btn-like {
+    background: var(--bg-light);
+    border: none;
+    border-radius: 20px;
+    padding: 8px 16px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: var(--shadow-out);
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-muted);
+}
+
+.btn-like:hover {
+    transform: translateY(-1px);
     box-shadow: var(--shadow-btn-hover);
-    transition: all 0.3s ease;
 }
 
-#fab:hover {
-    background-color: var(--primary-hover);
-    transform: scale(1.1);
+.btn-like.liked {
+    color: #e74c3c;
+    box-shadow: var(--shadow-in);
 }
 
-.fab:active {
-    transform: scale(0.9);
+.btn-like .heart {
+    font-size: 1.1rem;
+    transition: transform 0.15s ease;
 }
 
-/* Ensure the main content doesn't get hidden under the sticky header */
-main {
-    margin-top: 160px; /* Adjust this based on your header height */
+.btn-like.liked .heart {
+    transform: scale(1.2);
 }
+
+/* --- POST FULL VIEW MODAL --- */
+#post-view-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(20, 30, 40, 0.75);
+    backdrop-filter: blur(8px);
+    z-index: 9500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.post-view-box {
+    background: var(--bg-light);
+    border-radius: 24px;
+    box-shadow: var(--shadow-out);
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: modalIn 0.2s ease;
+}
+
+.post-view-box img {
+    width: 100%;
+    max-height: 400px;
+    object-fit: cover;
+    border-radius: 24px 24px 0 0;
+    display: block;
+}
+
+.post-view-body {
+    padding: 24px;
+}
+
+.post-view-body h2 {
+    margin: 0 0 10px 0;
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--text-main);
+}
+
+.post-view-body p {
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin: 0 0 16px 0;
+}
+
+.post-view-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    background: var(--bg-light);
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
+    cursor: pointer;
+    box-shadow: var(--shadow-out);
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.post-view-wrapper {
+    position: relative;
+}
+
 /* --- UTILS --- */
 .hidden { display: none !important; }

@@ -24,7 +24,6 @@ app.use(express.json());
 app.use(bodyParser.json());
 app.use(express.static("Public")); 
 
-
 app.use(
     expressSession({
         secret: process.env.SESSION_SECRET || 'travel_social_secret',
@@ -53,7 +52,6 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_SECRET
 });
 
-// Configure Cloudinary Storage for Multer
 const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: {
@@ -63,6 +61,7 @@ const storage = new CloudinaryStorage({
 });
 
 const upload = multer({ storage });
+
 // --- 1. AUTHENTICATION ---
 
 app.post('/users', async (req, res) => {
@@ -93,12 +92,13 @@ app.get('/login-check', (req, res) => {
         res.json({ 
             loggedIn: true, 
             username: req.session.username,
-            userId: req.session.userId  // ADD THIS LINE
+            userId: req.session.userId
         });
     } else {
         res.json({ loggedIn: false });
     }
 });
+
 app.delete('/login', (req, res) => {
     req.session.destroy();
     res.json({ message: "Logged out" });
@@ -127,21 +127,82 @@ app.put('/profile/password', async (req, res) => {
     res.status(401).json({ error: "Wrong original password" });
 });
 
+// NEW: Update display name
+app.put('/profile/username', async (req, res) => {
+    if (!req.session.isLoggedIn) return res.status(401).send();
+    const { username } = req.body;
+    if (!username || username.trim().length < 2) return res.status(400).json({ error: "Name too short" });
+    await db.collection('users').updateOne(
+        { _id: new ObjectId(req.session.userId) },
+        { $set: { username: username.trim() } }
+    );
+    req.session.username = username.trim();
+    res.json({ success: true });
+});
+
+// NEW: Get current user's own posts
+app.get('/profile/posts', async (req, res) => {
+    if (!req.session.isLoggedIn) return res.status(401).send();
+    const posts = await db.collection('contents')
+        .find({ userId: req.session.userId })
+        .sort({ createdAt: -1 })
+        .toArray();
+    res.json(posts);
+});
+
+// NEW: Delete a post (only owner can delete)
+app.delete('/contents/:id', async (req, res) => {
+    if (!req.session.isLoggedIn) return res.status(401).send();
+    try {
+        const result = await db.collection('contents').deleteOne({
+            _id: new ObjectId(req.params.id),
+            userId: req.session.userId
+        });
+        if (result.deletedCount === 0) return res.status(403).json({ error: "Not your post" });
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// NEW: Get followers list with usernames
+app.get('/profile/followers', async (req, res) => {
+    if (!req.session.isLoggedIn) return res.status(401).send();
+    const user = await db.collection('users').findOne({ _id: new ObjectId(req.session.userId) });
+    const followerIds = (user.followers || []).map(id => new ObjectId(id));
+    if (followerIds.length === 0) return res.json([]);
+    const followers = await db.collection('users')
+        .find({ _id: { $in: followerIds } })
+        .project({ username: 1 })
+        .toArray();
+    res.json(followers);
+});
+
+// NEW: Get following list with usernames
+app.get('/profile/following', async (req, res) => {
+    if (!req.session.isLoggedIn) return res.status(401).send();
+    const user = await db.collection('users').findOne({ _id: new ObjectId(req.session.userId) });
+    const followingIds = (user.following || []).map(id => new ObjectId(id));
+    if (followingIds.length === 0) return res.json([]);
+    const following = await db.collection('users')
+        .find({ _id: { $in: followingIds } })
+        .project({ username: 1 })
+        .toArray();
+    res.json(following);
+});
+
 // --- 3. POSTS & FEEDS ---
 
 app.post('/contents', upload.single('image'), async (req, res) => {
     try {
         const { title, description } = req.body;
-        
-        // req.file.path is the full https://res.cloudinary.com/... URL
-        const imageUrl = req.file.path; 
-
+        const imageUrl = req.file.path;
         await db.collection('contents').insertOne({ 
             userId: req.session.userId, 
             username: req.session.username,
             title, 
             description, 
-            image: imageUrl, // Use the Cloudinary URL directly
+            image: imageUrl,
             createdAt: new Date() 
         });
         res.json({ success: true });
@@ -158,38 +219,64 @@ app.get('/feed', async (req, res) => {
     const posts = await db.collection('contents').find().sort({ createdAt: -1 }).toArray();
     
     const following = (user.following || []).map(id => id.toString());
-    
-    // Sort so following content is first
+    const myId = req.session.userId.toString();
+
+    // Sort: followed users first, then newest within each group
     const sorted = posts.sort((a, b) => {
-        const aFollowed = following.includes(a.userId.toString());
-        const bFollowed = following.includes(b.userId.toString());
-        return bFollowed - aFollowed;
+        const aFollowed = following.includes(a.userId.toString()) ? 1 : 0;
+        const bFollowed = following.includes(b.userId.toString()) ? 1 : 0;
+        if (bFollowed !== aFollowed) return bFollowed - aFollowed;
+        return new Date(b.createdAt) - new Date(a.createdAt);
     });
+
+    // Attach likedByMe flag to each post
+    const enriched = sorted.map(p => ({
+        ...p,
+        likeCount: (p.likes || []).length,
+        likedByMe: (p.likes || []).map(id => id.toString()).includes(myId)
+    }));
     
-    res.json({ feed: sorted, followingIds: following });
+    res.json({ feed: enriched, followingIds: following });
 });
 
-// --- 4. MESSAGING (CRITICAL UPDATES) ---
+// Toggle like on a post
+app.post('/contents/:id/like', async (req, res) => {
+    if (!req.session.isLoggedIn) return res.status(401).send();
+    const postId = new ObjectId(req.params.id);
+    const myId = new ObjectId(req.session.userId);
 
-// --- 4. MESSAGING (FIXED SERVER LOGIC) ---
+    const post = await db.collection('contents').findOne({ _id: postId });
+    if (!post) return res.status(404).send();
+
+    const likes = (post.likes || []).map(id => id.toString());
+    const alreadyLiked = likes.includes(req.session.userId.toString());
+
+    if (alreadyLiked) {
+        await db.collection('contents').updateOne({ _id: postId }, { $pull: { likes: myId } });
+    } else {
+        await db.collection('contents').updateOne({ _id: postId }, { $addToSet: { likes: myId } });
+    }
+
+    const updated = await db.collection('contents').findOne({ _id: postId });
+    res.json({ likeCount: (updated.likes || []).length, likedByMe: !alreadyLiked });
+});
+
+// --- 4. MESSAGING ---
 
 app.post('/messages', async (req, res) => {
     try {
         const { receiverId, text } = req.body;
         const senderId = req.session.userId;
-
         if (!senderId) return res.status(401).send("Unauthorized");
 
-        // Convert IDs to ObjectIDs to find the users in DB
         const sender = await db.collection('users').findOne({ _id: new ObjectId(senderId) });
         const receiver = await db.collection('users').findOne({ _id: new ObjectId(receiverId) });
-
         if (!sender || !receiver) return res.status(404).send("User not found");
 
         const newMessage = {
-            senderId: new ObjectId(senderId),     // Save as ObjectID
+            senderId: new ObjectId(senderId),
             senderName: sender.username,
-            receiverId: new ObjectId(receiverId), // Save as ObjectID
+            receiverId: new ObjectId(receiverId),
             receiverName: receiver.username,
             text,
             createdAt: new Date()
@@ -204,7 +291,7 @@ app.post('/messages', async (req, res) => {
 });
 
 app.get('/inbox', async (req, res) => {
-    const myId = new ObjectId(req.session.userId); // Ensure this is an ObjectID
+    const myId = new ObjectId(req.session.userId);
     if (!myId) return res.status(401).send("Not logged in");
 
     const messages = await db.collection('messages').find({

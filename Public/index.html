@@ -18,20 +18,18 @@
                 <div class="search-box">
                     <input type="text" id="search-query" placeholder="Search destinations...">
                     <button onclick="searchContent()" id="search-btn">Search</button>
+                    <button onclick="clearSearch()" id="back-btn" class="hidden">✕ Back</button>
                 </div>
             </div>
         </header>
 
         <nav id="app-nav" class="tabs hidden">
-            <button onclick="showTab('feed-tab')">World Feed</button>
-            <button onclick="showTab('inbox-tab')">Messages</button>
-            <button onclick="showTab('settings-tab')">Settings</button>
-
+            <button onclick="showTab('feed-tab')" data-tab="feed-tab">World Feed</button>
+            <button onclick="showTab('inbox-tab')" data-tab="inbox-tab">Messages</button>
+            <button onclick="showTab('profile-tab')" data-tab="profile-tab">Profile</button>
             <button id="fab" class="nav-add-btn hidden" onclick="showTab('add-post-tab')">+</button>
         </nav>
     </div>
-
-  
 
     <main>
         <section id="auth-section">
@@ -58,12 +56,13 @@
         </section>
 
         <section id="app-section" class="hidden">
-            
+
+            <!-- FEED TAB -->
             <div id="feed-tab" class="tab-content">
-                
                 <div id="post-list"></div>
             </div>
 
+            <!-- ADD POST TAB -->
             <div id="add-post-tab" class="tab-content hidden">
                 <h3>Share a New Memory</h3>
                 <form id="new-post-form">
@@ -74,6 +73,7 @@
                 </form>
             </div>
 
+            <!-- MESSAGES TAB -->
             <div id="inbox-tab" class="tab-content hidden">
                 <div id="messenger-container">
                     <div id="inbox-list"></div>
@@ -88,18 +88,101 @@
                 </div>
             </div>
 
-            <div id="settings-tab" class="tab-content hidden">
-                <form id="password-form">
-                    <h3>Change Password</h3>
-                    <input type="password" id="old-pass" placeholder="Current Password" required>
-                    <input type="password" id="new-pass" placeholder="New Password" required>
-                    <button type="submit">Update Password</button>
-                </form>
-                <button id="logout" style="margin-top: 40px; background: #e74c3c; color: white; border-radius: 20px; padding: 10px 20px; border:none;">Logout</button>
+            <!-- PROFILE TAB (NEW) -->
+            <div id="profile-tab" class="tab-content hidden">
+
+                <!-- Profile Header Card -->
+                <div class="profile-card">
+                    <div class="profile-avatar" id="profile-avatar-initials"></div>
+                    <div class="profile-info">
+                        <h2 id="profile-display-name"></h2>
+                        <div class="profile-stats-row">
+                            <button class="stat-btn" onclick="openModal('followers-modal')">
+                                <span id="profile-followers-count">0</span>
+                                <small>Followers</small>
+                            </button>
+                            <button class="stat-btn" onclick="openModal('following-modal')">
+                                <span id="profile-following-count">0</span>
+                                <small>Following</small>
+                            </button>
+                            <button class="stat-btn" onclick="scrollToMyPosts()">
+                                <span id="profile-posts-count">0</span>
+                                <small>Posts</small>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Edit Name -->
+                <div class="profile-section-card">
+                    <h4>✏️ Edit Display Name</h4>
+                    <form id="username-form">
+                        <input type="text" id="new-username" placeholder="New display name" required>
+                        <button type="submit">Update Name</button>
+                    </form>
+                </div>
+
+                <!-- Change Password -->
+                <div class="profile-section-card">
+                    <h4>🔒 Change Password</h4>
+                    <form id="password-form">
+                        <input type="password" id="old-pass" placeholder="Current Password" required>
+                        <input type="password" id="new-pass" placeholder="New Password" required>
+                        <button type="submit">Update Password</button>
+                    </form>
+                </div>
+
+                <!-- My Posts -->
+                <div class="profile-section-card">
+                    <h4>📸 My Posts</h4>
+                    <div id="my-post-list"></div>
+                </div>
+
+                <!-- Logout -->
+                <div class="profile-section-card" style="text-align:center;">
+                    <button id="logout" class="logout-btn">🚪 Logout</button>
+                </div>
+
             </div>
 
         </section>
     </main>
+
+    <!-- FOLLOWERS MODAL -->
+    <div id="followers-modal" class="modal-overlay hidden" onclick="closeModalOutside(event, 'followers-modal')">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>Followers</h3>
+                <button onclick="closeModal('followers-modal')" class="modal-close">✕</button>
+            </div>
+            <div id="followers-list" class="user-list"></div>
+        </div>
+    </div>
+
+    <!-- FOLLOWING MODAL -->
+    <div id="following-modal" class="modal-overlay hidden" onclick="closeModalOutside(event, 'following-modal')">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>Following</h3>
+                <button onclick="closeModal('following-modal')" class="modal-close">✕</button>
+            </div>
+            <div id="following-list" class="user-list"></div>
+        </div>
+    </div>
+
+    <!-- POST FULL VIEW MODAL -->
+    <div id="post-view-modal" class="hidden" onclick="closePostModal(event)">
+        <div class="post-view-wrapper">
+            <div class="post-view-box" id="post-view-box">
+                <img id="post-view-img" src="" alt="">
+                <div class="post-view-body">
+                    <h2 id="post-view-title"></h2>
+                    <p id="post-view-desc"></p>
+                </div>
+            </div>
+            <button class="post-view-close" onclick="document.getElementById('post-view-modal').classList.add('hidden')">✕</button>
+        </div>
+    </div>
 
     <script src="../JavaScript/sm.js"></script>
 </body>
