@@ -8,6 +8,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import bcrypt from 'bcryptjs';
+import { v2 as cloudinary } from 'cloudinary';
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
 
 dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
@@ -21,7 +23,7 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(bodyParser.json());
 app.use(express.static("Public")); 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 
 app.use(
     expressSession({
@@ -44,13 +46,23 @@ MongoClient.connect(mongoUri)
     })
     .catch((error) => console.error('❌ Connection Error:', error));
 
-// Image Upload Config
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, './uploads'),
-    filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
+// Configure Cloudinary
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_NAME,
+    api_key: process.env.CLOUDINARY_KEY,
+    api_secret: process.env.CLOUDINARY_SECRET
 });
-const upload = multer({ storage });
 
+// Configure Cloudinary Storage for Multer
+const storage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+        folder: 'zuzu_connect_uploads',
+        allowed_formats: ['jpg', 'png', 'jpeg', 'webp'],
+    },
+});
+
+const upload = multer({ storage });
 // --- 1. AUTHENTICATION ---
 
 app.post('/users', async (req, res) => {
@@ -118,12 +130,25 @@ app.put('/profile/password', async (req, res) => {
 // --- 3. POSTS & FEEDS ---
 
 app.post('/contents', upload.single('image'), async (req, res) => {
-    const { title, description } = req.body;
-    await db.collection('contents').insertOne({ 
-        userId: req.session.userId, username: req.session.username,
-        title, description, image: `/uploads/${req.file.filename}`, createdAt: new Date() 
-    });
-    res.json({ success: true });
+    try {
+        const { title, description } = req.body;
+        
+        // req.file.path is the full https://res.cloudinary.com/... URL
+        const imageUrl = req.file.path; 
+
+        await db.collection('contents').insertOne({ 
+            userId: req.session.userId, 
+            username: req.session.username,
+            title, 
+            description, 
+            image: imageUrl, // Use the Cloudinary URL directly
+            createdAt: new Date() 
+        });
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Upload Error:", error);
+        res.status(500).json({ error: "Failed to upload to Cloudinary" });
+    }
 });
 
 app.get('/feed', async (req, res) => {
