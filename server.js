@@ -23,7 +23,7 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(bodyParser.json());
 app.use(express.static("Public")); 
-
+app.set('trust proxy', 1);
 app.use(
     expressSession({
         secret: process.env.SESSION_SECRET || 'travel_social_secret',
@@ -38,12 +38,22 @@ const mongoUri = process.env.MONGO_URI;
 const dbName = 'travel_db'; 
 let db;
 
-MongoClient.connect(mongoUri)
-    .then((client) => {
-        console.log('✅ Connected to MongoDB Atlas');
+async function startServer() {
+    try {
+        // We wait for the database FIRST
+        const client = await MongoClient.connect(mongoUri);
         db = client.db(dbName);
-    })
-    .catch((error) => console.error('❌ Connection Error:', error));
+        console.log('✅ Connected to MongoDB Atlas');
+
+        // Only after DB is ready, we start the server
+        app.listen(PORT, () => console.log(`🚀 Server on port ${PORT}`));
+    } catch (error) {
+        console.error('❌ Connection Error:', error);
+        process.exit(1); 
+    }
+}
+
+startServer();
 
 // Configure Cloudinary
 cloudinary.config({
@@ -344,4 +354,3 @@ app.get('/search', async (req, res) => {
     res.json(results);
 });
 
-app.listen(PORT, () => console.log(`🚀 Server on port ${PORT}`));

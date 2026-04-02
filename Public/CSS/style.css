@@ -90,29 +90,27 @@ body {
 header {
     display: flex;
     flex-direction: row;
-    /* Force horizontal */
     align-items: center;
-    /* Vertical center */
     justify-content: space-between;
-    padding: 0 20px;
-    height: 60px;
-    /* Slimmer header height */
+    padding: 0 16px;
+    height: 56px;
     max-width: 100%;
     margin: 0 auto;
+    gap: 8px;
 }
 
-/* LEFT SIDE: Logo and Search in a row */
+/* LEFT: Brand + Search */
 .header-left-row {
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 10px;
-    flex: 1;
+    gap: 8px;
+    flex-shrink: 0;
 }
 
 header h1 {
     margin: 0;
-    font-size: 1.2rem;
+    font-size: 1.15rem;
     font-weight: 800;
     white-space: nowrap;
     background: linear-gradient(135deg, var(--primary), var(--accent));
@@ -120,32 +118,30 @@ header h1 {
     background-clip: text;
     -webkit-text-fill-color: transparent;
     color: var(--primary);
+    flex-shrink: 0;
 }
 
-/* Stats (if shown) sitting quietly next to search */
+/* Hide user stats from header entirely */
 #user-stats {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    text-align: center;
-    padding: 2px 0 8px;
-    padding: 0;
-    white-space: nowrap;
     display: none !important;
 }
 
 /* RIGHT TOGGLE */
 #theme-toggle {
-    position: static;
-    /* Let flexbox handle it */
-    transform: none;
-    margin-left: auto;
-    /* Push to far right */
-    width: 40px;
-    height: 40px;
+    flex-shrink: 0;
+    margin-left: 0;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    box-shadow: var(--shadow-btn);
+    transition: all 0.2s ease;
+    font-size: 1rem;
 }
 
 #theme-toggle:hover {
@@ -153,32 +149,29 @@ header h1 {
     box-shadow: var(--shadow-out);
 }
 
-
-
 /* ============================================
-   NAV TABS
+   NAV TABS — static, centered in flex
    ============================================ */
-/* CENTER TABS */
 .tabs {
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 8px;
-    position: absolute;
-    /* Keep tabs dead-center regardless of side widths */
-    left: 50%;
-    transform: translateX(-50%);
+    gap: 6px;
+    position: static;
+    transform: none;
+    flex: 1;
+    justify-content: center;
 }
 
 .tabs button {
     background: var(--bg-card);
     color: var(--text-muted);
     border: 1px solid var(--border);
-    padding: 8px 16px;
+    padding: 7px 14px;
     white-space: nowrap;
     border-radius: 50px;
     font-weight: 600;
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     cursor: pointer;
     box-shadow: var(--shadow-btn);
     transition: all 0.2s ease;
@@ -188,6 +181,143 @@ header h1 {
     box-shadow: var(--shadow-in);
     color: var(--primary);
     border-color: transparent;
+}
+
+/* ============================================
+   SEARCH BAR
+   ============================================ */
+.search-container {
+    width: auto;
+    margin: 0;
+}
+
+.search-box {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: nowrap;
+}
+
+#search-query {
+    width: 140px;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 50px;
+    background: var(--bg-input);
+    font-size: 0.8rem;
+    color: var(--text);
+    box-shadow: var(--shadow-in);
+    transition: all 0.25s ease;
+    font-family: inherit;
+}
+
+#search-query::placeholder {
+    color: var(--text-muted);
+}
+
+#search-query:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(0, 149, 246, 0.15), var(--shadow-in);
+}
+
+#search-btn {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+    padding: 6px 12px;
+    border-radius: 50px;
+    border: none;
+    font-weight: 600;
+    font-size: 0.75rem;
+    cursor: pointer;
+    box-shadow: 0 3px 12px rgba(0, 149, 246, 0.3);
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+#search-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 16px rgba(0, 149, 246, 0.4);
+}
+
+#back-btn {
+    background: var(--bg-card);
+    color: var(--text-muted);
+    padding: 6px 12px;
+    border-radius: 50px;
+    border: 1px solid var(--border);
+    font-weight: 600;
+    font-size: 0.75rem;
+    cursor: pointer;
+    box-shadow: var(--shadow-out);
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+#back-btn:hover {
+    color: var(--danger);
+}
+
+/* ============================================
+   FAB (+) BUTTON
+   ============================================ */
+#fab {
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: white;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 4px;
+    box-shadow: 0 3px 12px rgba(0, 149, 246, 0.35);
+    transition: all 0.25s ease;
+    flex-shrink: 0;
+}
+
+#fab:hover {
+    transform: scale(1.12) rotate(90deg);
+}
+
+/* ============================================
+   RESPONSIVE — shrink gracefully
+   ============================================ */
+@media (max-width: 700px) {
+    #search-query {
+        width: 100px;
+    }
+
+    .tabs button {
+        padding: 6px 10px;
+        font-size: 0.75rem;
+    }
+
+    header h1 {
+        font-size: 0.95rem;
+    }
+
+    #search-btn {
+        padding: 6px 10px;
+        font-size: 0.72rem;
+    }
+}
+
+@media (max-width: 480px) {
+    #search-query {
+        width: 75px;
+        font-size: 0.72rem;
+    }
+
+    .tabs button {
+        padding: 5px 8px;
+        font-size: 0.7rem;
+    }
 }
 
 /* ============================================
@@ -445,91 +575,6 @@ button[type="submit"]:active {
 
 .btn-like.liked .heart {
     transform: scale(1.2);
-}
-
-/* ============================================
-   SEARCH BAR
-   ============================================ */
-.search-container {
-    width: auto;
-    margin: 0;
-}
-
-.search-box {
-    display: flex;
-    flex-direction: row;  
-    align-items: center;
-    gap: 5px;
-    flex-wrap: nowrap;
-}
-
-#search-query {
-    width: 160px;
-    padding: 8px 14px;
-    font-size: 0.8rem;
-}
-
-#search-btn {
-    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-    color: white;
-    padding: 8px 15px;
-    border-radius: 50px;
-    border: none;
-    font-weight: 700;
-    font-size: 0.8rem;
-    cursor: pointer;
-    box-shadow: 0 3px 12px rgba(0, 149, 246, 0.3);
-    transition: all 0.2s ease;
-    white-space: nowrap;
-}
-
-#search-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 5px 16px rgba(0, 149, 246, 0.4);
-}
-
-#back-btn {
-    background: var(--bg-card);
-    color: var(--text-muted);
-    padding: 11px 16px;
-    border-radius: 50px;
-    border: 1px solid var(--border);
-    font-weight: 600;
-    font-size: 0.85rem;
-    cursor: pointer;
-    box-shadow: var(--shadow-out);
-    transition: all 0.2s ease;
-    white-space: nowrap;
-}
-
-#back-btn:hover {
-    color: var(--danger);
-}
-
-/* ============================================
-   FAB (+) BUTTON
-   ============================================ */
-#fab {
-    background: linear-gradient(135deg, var(--primary), var(--accent));
-    color: white;
-    border: none;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    font-size: 22px;
-    font-weight: bold;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-left: 8px;
-    box-shadow: 0 3px 12px rgba(0, 149, 246, 0.35);
-    transition: all 0.25s ease;
-    flex-shrink: 0;
-}
-
-#fab:hover {
-    transform: scale(1.12) rotate(90deg);
 }
 
 /* ============================================
@@ -994,7 +1039,6 @@ button[type="submit"]:active {
         transform: scale(0.9) translateY(10px);
         opacity: 0;
     }
-
     to {
         transform: scale(1) translateY(0);
         opacity: 1;
