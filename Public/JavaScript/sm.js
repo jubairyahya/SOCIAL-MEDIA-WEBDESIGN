@@ -1,4 +1,4 @@
-const apiBase = "http://localhost:8080";
+const apiBase = "https://zuconnect-ntkhfsrm.b4a.run";
 let currentChatUserId = null;
 let myUserId = null;
 let myFollowingIds = []; // Tracks who the logged-in user follows
