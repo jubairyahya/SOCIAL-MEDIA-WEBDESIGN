@@ -1,4 +1,4 @@
-const apiBase = "https://zuconnect-ntkhfsrm.b4a.run";
+const apiBase = "https://social-media-api-30041194962.development.catalystappsail.eu/";
 let currentChatUserId = null;
 let myUserId = null;
 let myFollowingIds = []; // Tracks who the logged-in user follows
