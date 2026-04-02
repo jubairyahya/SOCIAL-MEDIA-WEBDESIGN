@@ -9,27 +9,35 @@
 </head>
 <body>
 
-    <div class="top-nav-wrapper">
-        <header>
+   <div class="top-nav-wrapper">
+    <header>
+        <!-- LEFT: Brand & Search together in a row -->
+        <div class="header-left-row">
             <h1>ZuZu Connect</h1>
-            <div id="user-stats" class="hidden"></div>
-
-            <div class="search-container hidden">
+            
+            <div class="search-container">
                 <div class="search-box">
                     <input type="text" id="search-query" placeholder="Search destinations...">
                     <button onclick="searchContent()" id="search-btn">Search</button>
                     <button onclick="clearSearch()" id="back-btn" class="hidden">✕ Back</button>
                 </div>
             </div>
-        </header>
+            
+            <div id="user-stats" class="hidden"></div>
+        </div>
 
+        <!-- CENTER: Navigation -->
         <nav id="app-nav" class="tabs hidden">
-            <button onclick="showTab('feed-tab')" data-tab="feed-tab">World Feed</button>
+            <button onclick="showTab('feed-tab')" data-tab="feed-tab">Home</button>
             <button onclick="showTab('inbox-tab')" data-tab="inbox-tab">Messages</button>
             <button onclick="showTab('profile-tab')" data-tab="profile-tab">Profile</button>
             <button id="fab" class="nav-add-btn hidden" onclick="showTab('add-post-tab')">+</button>
         </nav>
-    </div>
+
+        <!-- RIGHT: Toggle -->
+        <button id="theme-toggle" onclick="toggleTheme()" title="Toggle theme">🌙</button>
+    </header>
+</div>
 
     <main>
         <section id="auth-section">
@@ -68,7 +76,8 @@
                 <form id="new-post-form">
                     <input type="text" name="title" placeholder="Location Name" required>
                     <textarea name="description" placeholder="Share your tips..." required></textarea>
-                    <input type="file" name="image" accept="image/*" required>
+                    <input type="file" name="images" accept="image/*" multiple required>
+                    <small style="color:var(--text-muted); text-align:center;">Hold Ctrl/Cmd to select multiple photos</small>
                     <button type="submit">Post to Feed</button>
                 </form>
             </div>
@@ -174,13 +183,14 @@
     <div id="post-view-modal" class="hidden" onclick="closePostModal(event)">
         <div class="post-view-wrapper">
             <div class="post-view-box" id="post-view-box">
-                <img id="post-view-img" src="" alt="">
+                <div id="post-view-media"></div>
                 <div class="post-view-body">
+                    <p id="post-view-username" style="margin:0 0 6px 0; font-weight:700; color:var(--primary-blue); display:none;"></p>
                     <h2 id="post-view-title"></h2>
                     <p id="post-view-desc"></p>
                 </div>
             </div>
-            <button class="post-view-close" onclick="document.getElementById('post-view-modal').classList.add('hidden')">✕</button>
+            <button class="post-view-close" onclick="document.getElementById('post-view-modal').classList.add('hidden'); document.body.style.overflow='';">✕</button>
         </div>
     </div>
 

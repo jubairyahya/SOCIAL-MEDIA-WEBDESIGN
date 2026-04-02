@@ -124,6 +124,55 @@ document.getElementById('search-query').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') searchContent();
 });
 
+function getPostImages(post) {
+    // Support both new multi-image posts and old single-image posts
+    if (post.images && post.images.length > 0) return post.images;
+    if (post.image) return [post.image];
+    return [];
+}
+
+function buildCarousel(images, postId) {
+    if (images.length === 0) return '';
+    if (images.length === 1) {
+        return `<img src="${images[0]}" alt="Post image" class="post-main-img" loading="lazy">`;
+    }
+    const dots = images.map((_, i) =>
+        `<span class="carousel-dot ${i === 0 ? 'active' : ''}" onclick="goToSlide('${postId}', ${i})"></span>`
+    ).join('');
+    const slides = images.map((src, i) =>
+        `<img src="${src}" alt="Post image ${i+1}" class="carousel-slide ${i === 0 ? 'active' : ''}" loading="lazy">`
+    ).join('');
+    return `
+        <div class="carousel" id="carousel-${postId}">
+            ${slides}
+            ${images.length > 1 ? `
+            <button class="carousel-btn prev" onclick="event.stopPropagation(); shiftSlide('${postId}', -1)">&#8249;</button>
+            <button class="carousel-btn next" onclick="event.stopPropagation(); shiftSlide('${postId}', 1)">&#8250;</button>
+            <div class="carousel-dots">${dots}</div>
+            ` : ''}
+        </div>`;
+}
+
+function shiftSlide(postId, dir) {
+    const carousel = document.getElementById(`carousel-${postId}`);
+    const slides = carousel.querySelectorAll('.carousel-slide');
+    const dots = carousel.querySelectorAll('.carousel-dot');
+    let current = Array.from(slides).findIndex(s => s.classList.contains('active'));
+    slides[current].classList.remove('active');
+    dots[current].classList.remove('active');
+    current = (current + dir + slides.length) % slides.length;
+    slides[current].classList.add('active');
+    dots[current].classList.add('active');
+}
+
+function goToSlide(postId, idx) {
+    const carousel = document.getElementById(`carousel-${postId}`);
+    const slides = carousel.querySelectorAll('.carousel-slide');
+    const dots = carousel.querySelectorAll('.carousel-dot');
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+}
+
 function renderPosts(posts) {
     const list = document.getElementById('post-list');
     showTab('feed-tab');
@@ -138,6 +187,7 @@ function renderPosts(posts) {
         const isFollowing = myFollowingIds.includes(post.userId?.toString());
         const likeCount = post.likeCount || 0;
         const likedByMe = post.likedByMe || false;
+        const images = getPostImages(post);
 
         let actionButtons = '';
         if (isMyPost) {
@@ -157,10 +207,13 @@ function renderPosts(posts) {
         return `
         <div class="post" id="feed-post-${post._id}">
             <div class="post-header"><strong>${post.username}</strong></div>
-            <img src="${post.image}" alt="Travel Image" loading="lazy">
+            <div class="post-media" onclick="openFeedPostModal('${post._id}')">
+                ${buildCarousel(images, post._id)}
+                <div class="post-read-hint">Tap to read full post</div>
+            </div>
             <div class="post-body">
                 <h3>${post.title}</h3>
-                <p>${post.description}</p>
+                <p class="post-preview-desc">${post.description}</p>
             </div>
             <div class="post-actions">
                 <button class="btn-like ${likedByMe ? 'liked' : ''}" onclick="toggleLike('${post._id}', this)">
@@ -171,6 +224,16 @@ function renderPosts(posts) {
             </div>
         </div>`;
     }).join('');
+
+    // Store posts data for modal lookup
+    window._feedPosts = posts;
+}
+
+function openFeedPostModal(postId) {
+    const post = (window._feedPosts || []).find(p => p._id?.toString() === postId.toString());
+    if (!post) return;
+    const images = getPostImages(post);
+    openPostModal(images, post.title, post.description, post.username);
 }
 
 document.getElementById('new-post-form').onsubmit = async (e) => {
@@ -244,19 +307,34 @@ async function loadMyPosts() {
         return;
     }
 
-    container.innerHTML = posts.map(post => `
+    container.innerHTML = posts.map(post => {
+        const imgs = (post.images && post.images.length > 0) ? post.images : (post.image ? [post.image] : []);
+        const thumb = imgs[0] || '';
+        const imgsJson = JSON.stringify(imgs).replace(/"/g, '&quot;');
+        const safeTitle = post.title.replace(/'/g, "\'");
+        const safeDesc = post.description.replace(/'/g, "\'");
+        return `
         <div class="my-post-item" id="post-item-${post._id}">
-            <img class="my-post-thumb" src="${post.image}" alt="${post.title}"
+            <img class="my-post-thumb" src="${thumb}" alt="${post.title}"
                  style="cursor:pointer;"
-                 onclick="openPostModal('${post.image}', '${post.title.replace(/'/g, "\'")}', '${post.description.replace(/'/g, "\'")}')">
+                 onclick="openPostModal(JSON.parse(this.closest('.my-post-item').dataset.imgs), '${safeTitle}', '${safeDesc}')"
+            >
             <div class="my-post-info" style="cursor:pointer;"
-                 onclick="openPostModal('${post.image}', '${post.title.replace(/'/g, "\'")}', '${post.description.replace(/'/g, "\'")}')">
+                 onclick="openPostModal(JSON.parse(this.closest('.my-post-item').dataset.imgs), '${safeTitle}', '${safeDesc}')">
                 <strong>${post.title}</strong>
                 <p>${post.description}</p>
+                ${imgs.length > 1 ? `<small style="color:var(--primary-blue);">📷 ${imgs.length} photos</small>` : ''}
             </div>
             <button class="btn-delete-post" onclick="deletePost('${post._id}')">🗑 Delete</button>
-        </div>
-    `).join('');
+        </div>`;
+    }).map((html, i) => {
+        const post = posts[i];
+        const imgs = (post.images && post.images.length > 0) ? post.images : (post.image ? [post.image] : []);
+        const tmp = document.createElement('div');
+        tmp.innerHTML = html;
+        tmp.firstElementChild.dataset.imgs = JSON.stringify(imgs);
+        return tmp.innerHTML;
+    }).join('');
 }
 
 async function deletePost(postId) {
@@ -459,12 +537,59 @@ async function toggleLike(postId, btn) {
 }
 
 // --- 10. POST FULL VIEW MODAL (from profile) ---
-function openPostModal(imgSrc, title, desc) {
-    document.getElementById('post-view-img').src = imgSrc;
+function openPostModal(images, title, desc, username) {
+    // images can be array or single string (from profile click)
+    const imgs = Array.isArray(images) ? images : [images];
+    
+    const mediaEl = document.getElementById('post-view-media');
+    if (imgs.length === 1) {
+        mediaEl.innerHTML = `<img src="${imgs[0]}" alt="${title}" style="width:100%;max-height:70vh;object-fit:contain;border-radius:16px 16px 0 0;display:block;background:#000;">`;
+    } else {
+        const slides = imgs.map((src, i) =>
+            `<img src="${src}" alt="${title} ${i+1}" class="modal-slide ${i===0?'active':''}" style="width:100%;max-height:70vh;object-fit:contain;background:#000;display:none;" ${i===0?'':''}>`
+        ).join('');
+        const dots = imgs.map((_, i) =>
+            `<span class="carousel-dot ${i===0?'active':''}" onclick="goToModalSlide(${i})" style="cursor:pointer;"></span>`
+        ).join('');
+        mediaEl.innerHTML = `
+            <div class="modal-carousel" id="modal-carousel">
+                ${slides}
+                <button class="carousel-btn prev" onclick="shiftModalSlide(-1)">&#8249;</button>
+                <button class="carousel-btn next" onclick="shiftModalSlide(1)">&#8250;</button>
+                <div class="carousel-dots">${dots}</div>
+            </div>`;
+        // Show first slide
+        mediaEl.querySelectorAll('.modal-slide')[0].style.display = 'block';
+    }
+
     document.getElementById('post-view-title').textContent = title;
     document.getElementById('post-view-desc').textContent = desc;
+    if (username) {
+        document.getElementById('post-view-username').textContent = username;
+        document.getElementById('post-view-username').style.display = 'block';
+    } else {
+        document.getElementById('post-view-username').style.display = 'none';
+    }
     document.getElementById('post-view-modal').classList.remove('hidden');
     document.body.style.overflow = 'hidden';
+}
+
+function shiftModalSlide(dir) {
+    const slides = document.querySelectorAll('#modal-carousel .modal-slide');
+    const dots = document.querySelectorAll('#modal-carousel .carousel-dot');
+    let current = Array.from(slides).findIndex(s => s.style.display === 'block');
+    slides[current].style.display = 'none';
+    dots[current].classList.remove('active');
+    current = (current + dir + slides.length) % slides.length;
+    slides[current].style.display = 'block';
+    dots[current].classList.add('active');
+}
+
+function goToModalSlide(idx) {
+    const slides = document.querySelectorAll('#modal-carousel .modal-slide');
+    const dots = document.querySelectorAll('#modal-carousel .carousel-dot');
+    slides.forEach((s, i) => { s.style.display = i === idx ? 'block' : 'none'; });
+    dots.forEach((d, i) => d.classList.toggle('active', i === idx));
 }
 
 function closePostModal(event) {
@@ -488,6 +613,25 @@ function scrollToMyPosts() {
     const el = document.getElementById('my-post-list');
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
+
+// --- THEME TOGGLE ---
+function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    const btn = document.getElementById('theme-toggle');
+    if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+    localStorage.setItem('zuzu-theme', theme);
+}
+
+function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme') || 'light';
+    applyTheme(current === 'dark' ? 'light' : 'dark');
+}
+
+// Apply saved theme immediately on load
+(function() {
+    const saved = localStorage.getItem('zuzu-theme') || 'light';
+    applyTheme(saved);
+})();
 
 // --- BOOT ---
 init();

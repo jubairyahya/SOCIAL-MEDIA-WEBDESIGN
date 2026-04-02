@@ -193,16 +193,20 @@ app.get('/profile/following', async (req, res) => {
 
 // --- 3. POSTS & FEEDS ---
 
-app.post('/contents', upload.single('image'), async (req, res) => {
+app.post('/contents', upload.array('images', 10), async (req, res) => {
     try {
         const { title, description } = req.body;
-        const imageUrl = req.file.path;
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ error: "At least one image is required" });
+        }
+        const images = req.files.map(f => f.path);
         await db.collection('contents').insertOne({ 
             userId: req.session.userId, 
             username: req.session.username,
             title, 
             description, 
-            image: imageUrl,
+            images,                  // array of URLs
+            image: images[0],        // keep for backward compat with old posts
             createdAt: new Date() 
         });
         res.json({ success: true });
@@ -223,8 +227,8 @@ app.get('/feed', async (req, res) => {
 
     // Sort: followed users first, then newest within each group
     const sorted = posts.sort((a, b) => {
-        const aFollowed = following.includes(a.userId.toString()) ? 1 : 0;
-        const bFollowed = following.includes(b.userId.toString()) ? 1 : 0;
+        const aFollowed = a.userId ? (following.includes(a.userId.toString()) ? 1 : 0) : 0;
+        const bFollowed = b.userId ? (following.includes(b.userId.toString()) ? 1 : 0) : 0;
         if (bFollowed !== aFollowed) return bFollowed - aFollowed;
         return new Date(b.createdAt) - new Date(a.createdAt);
     });
